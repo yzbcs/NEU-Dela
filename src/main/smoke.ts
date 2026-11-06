@@ -44,6 +44,15 @@ async function theme(window: BrowserWindow, value: 'light' | 'dark' | 'system') 
     'document.querySelector(' + JSON.stringify(selector) + ').click()',
   );
   await waitFor(() => nativeTheme.themeSource === value, '原生主题切换');
+  await waitFor(
+    () =>
+      window.webContents.executeJavaScript(
+        'document.querySelector(' +
+          JSON.stringify(selector) +
+          ')?.getAttribute("aria-pressed") === "true"',
+      ),
+    '外观选择已显示到界面',
+  );
   const expected = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
   await waitFor(
     async () =>
@@ -97,7 +106,7 @@ async function runThemeSmoke(service: ChatService, window: BrowserWindow) {
       async () =>
         (await window.webContents.executeJavaScript('document.documentElement.dataset.theme')) ===
         mode,
-      '系统主题信号变化',
+      '系统主题信号变化：' + mode,
     );
     assert.equal(service.store.theme, 'system');
   }
@@ -163,8 +172,15 @@ async function runCourseColorSmoke(service: ChatService, window: BrowserWindow) 
     firstMonday: addDays(today, -((new Date(dateNumber(today)).getUTCDay() + 6) % 7)),
     courses,
   };
-  const readCards = () =>
-    window.webContents.executeJavaScript(`
+  const readCards = async () => {
+    window.webContents.sendInputEvent({ type: 'mouseMove', x: 5, y: 5 });
+    // Mouse input is asynchronous; sample the normal card color only after hover clears.
+    await waitFor(
+      () =>
+        window.webContents.executeJavaScript('!document.querySelector(".calendar-course:hover")'),
+      '课程卡片结束悬停',
+    );
+    return window.webContents.executeJavaScript(`
     Array.from(document.querySelectorAll('.calendar-course')).map(card => {
       const style = getComputedStyle(card);
       return { name: card.querySelector('strong').textContent,
@@ -172,6 +188,7 @@ async function runCourseColorSmoke(service: ChatService, window: BrowserWindow) 
         background: style.backgroundColor, text: style.color };
     })
   `) as Promise<{ name: string; hue: string; background: string; text: string }[]>;
+  };
   const luminance = (color: string) => {
     const channels = color
       .match(/[\d.]+/g)!
@@ -189,7 +206,6 @@ async function runCourseColorSmoke(service: ChatService, window: BrowserWindow) 
     await clickButton(window, '今日便利贴');
     await clickButton(window, '我的课表');
     await waitFor(async () => (await readCards()).length === 11, '多课程配色样例');
-    window.webContents.sendInputEvent({ type: 'mouseMove', x: 5, y: 5 });
     await theme(window, 'dark');
     const firstWeek = await readCards();
     await window.webContents.executeJavaScript(
@@ -855,12 +871,12 @@ async function runAssistantSmoke(service: ChatService, window: BrowserWindow) {
   window.setSize(1024, 700);
   assert.equal(
     await window.webContents.executeJavaScript(`(() => {
-    const button = document.querySelector('button[aria-label="工作台访问"]').getBoundingClientRect();
+    const model = document.querySelector('.model-select').getBoundingClientRect();
     const send = document.querySelector('.send-button').getBoundingClientRect();
-    return button.right <= innerWidth && send.right <= innerWidth && button.bottom <= innerHeight;
+    return model.right <= innerWidth && send.right <= innerWidth && send.bottom <= innerHeight && !document.querySelector('button[aria-label="工作台访问"]');
   })()`),
     true,
-    '小窗口工作台开关与发送按钮可见',
+    '小窗口模型与发送按钮可见，工作台开关已移除',
   );
   window.setSize(1360, 900);
   await theme(window, 'dark');
@@ -884,17 +900,13 @@ async function runAssistantSmoke(service: ChatService, window: BrowserWindow) {
     '参考来源打开对应笔记',
   );
   await clickButton(window, service.store.chat(id).title);
-  await window.webContents.executeJavaScript(
-    'document.querySelector("button[aria-label=工作台访问]").click()',
-  );
-  await fillAndSend(window, '关闭工作台访问后的普通聊天');
+  await fillAndSend(window, '继续普通聊天，不需要读取新的资料');
   await waitFor(
     () =>
       service.store.chat(id).messages.length === 4 &&
       service.store.chat(id).messages.at(-1)?.state === 'complete',
-    '关闭读取后普通聊天',
+    '工作台工具始终可用时仍可普通聊天',
   );
-  assert.equal(service.store.chat(id).workspaceAccess, false);
   assert.equal(service.store.chat(id).messages.at(-1)?.activity, undefined);
   return { id, reads: reply.activity!.length, sources: reply.sources!.length };
 }
@@ -1190,7 +1202,7 @@ async function runGraduateSmoke(service: ChatService, main: BrowserWindow) {
 }
 async function clickButton(window: BrowserWindow, text: string) {
   const find =
-    'Array.from(document.querySelectorAll("button")).find(b => b.textContent?.trim() === ' +
+    'Array.from(document.querySelectorAll("button:not(:disabled)")).find(b => b.textContent?.trim() === ' +
     JSON.stringify(text) +
     ')';
   await waitFor(
@@ -1207,6 +1219,13 @@ async function clickTodo(window: BrowserWindow, id: string, times = 1) {
   );
 }
 async function clickVisibleButton(window: BrowserWindow, selector: string, times = 1) {
+  await waitFor(
+    () =>
+      window.webContents.executeJavaScript(
+        `Boolean(document.querySelector(${JSON.stringify(selector)}))`,
+      ),
+    '可见按钮 ' + selector,
+  );
   const point = await window.webContents.executeJavaScript(`(() => {
     const button = document.querySelector(${JSON.stringify(selector)});
     if (!button || button.disabled) throw new Error('按钮不可点击');
@@ -1458,9 +1477,9 @@ async function runWorkspaceSmoke(service: ChatService, window: BrowserWindow) {
         return false;
       }
     }, '导出 Markdown');
-    await clickButton(window, '关联文件');
+    await clickButton(window, '添加文件');
     await waitFor(() => service.store.workspace.resources.length === 1, '关联资料文件');
-    await clickButton(window, '关联文件夹');
+    await clickButton(window, '添加文件夹');
     await waitFor(() => service.store.workspace.resources.length === 2, '关联资料文件夹');
     console.log('workspace smoke: timetable');
     await clickButton(window, '我的课表');
@@ -1589,25 +1608,11 @@ async function runWorkspaceSmoke(service: ChatService, window: BrowserWindow) {
     await screenshot(window, 'campus-graduate');
     await theme(window, 'dark');
     await clickButton(window, '设置');
-    await waitFor(
-      () =>
-        window.webContents.executeJavaScript(
-          'Boolean(document.querySelector(".settings-support"))',
-        ),
-      '设置帮助入口',
-    );
-    assert.equal(
-      await window.webContents.executeJavaScript(
-        'document.querySelector(".settings-support").open',
-      ),
-      false,
-      '帮助与诊断默认折叠',
-    );
-    await window.webContents.executeJavaScript(
-      'document.querySelector(".settings-support summary").click();document.querySelector(".settings-support").scrollIntoView({block:"center"});',
-    );
+    await clickVisibleButton(window, '[data-settings-open="help"]');
     await screenshot(window, 'settings-support');
-    await clickButton(window, '查看错误日志');
+    await window.webContents.executeJavaScript(
+      'Array.from(document.querySelectorAll(".settings-overview-row")).find(button => button.querySelector("strong")?.textContent === "查看错误日志").click()',
+    );
     await waitFor(
       () =>
         window.webContents.executeJavaScript(
@@ -1708,7 +1713,9 @@ export async function runDesktopSmoke(service: ChatService, window: BrowserWindo
   for (const secret of secrets)
     if (secret) assert(!snapshot.includes(secret), '界面快照不应包含已保存凭据');
   await screenshot(window, 'ai-home');
+  const editedProviderId = service.store.providers[0].id;
   await clickButton(window, '模型设置');
+  await clickVisibleButton(window, `[data-provider-id="${editedProviderId}"] button`);
   await waitFor(
     () =>
       window.webContents.executeJavaScript('Boolean(document.querySelector("input[name=apiKey]"))'),
@@ -1786,12 +1793,20 @@ export async function runDesktopSmoke(service: ChatService, window: BrowserWindo
       ),
     '选择模型后仍可切回手动输入',
   );
-  await clickButton(window, '保存并测试');
+  const savedModel = service.store.provider(editedProviderId).model;
+  await clickButton(window, '测试连接');
   await waitFor(
-    () => window.webContents.executeJavaScript('document.body.textContent.includes("连接成功")'),
-    '通过设置页保存并测试模型',
+    () =>
+      window.webContents.executeJavaScript('document.body.textContent.includes("连接测试通过")'),
+    '设置页测试当前模型草稿',
   );
-  await clickButton(window, 'OpenAI 接口');
+  assert.equal(service.store.provider(editedProviderId).model, savedModel, '测试不保存模型草稿');
+  await clickButton(window, '保存服务');
+  await waitFor(
+    () => service.store.provider(editedProviderId).model === 'dola-mock-compatible',
+    '保存当前模型草稿',
+  );
+  await clickVisibleButton(window, '[data-provider-add="openai"]');
   await waitFor(
     () =>
       window.webContents.executeJavaScript(
@@ -1799,7 +1814,7 @@ export async function runDesktopSmoke(service: ChatService, window: BrowserWindo
       ),
     '添加新模型服务',
   );
-  const baseUrl = service.store.providers[0].baseUrl.replace(/\/v1$/, '');
+  const baseUrl = service.store.provider(editedProviderId).baseUrl.replace(/\/v1$/, '');
   await window.webContents.executeJavaScript(
     '(() => {const fields=' +
       JSON.stringify({ baseUrl: baseUrl + '/v1', apiKey: 'fixture-new-models-key' }) +
@@ -1843,30 +1858,39 @@ export async function runDesktopSmoke(service: ChatService, window: BrowserWindo
       ),
     '模型列表接口失败时显示提示并保留手动输入',
   );
-  await clickButton(window, '保存并测试');
+  await clickButton(window, '测试连接');
   await waitFor(
     () =>
       window.webContents.executeJavaScript(
-        'document.body.textContent.includes("服务已保存，连接测试失败")' +
-          ' && document.querySelector(".form-heading h2")?.textContent === "编辑模型服务"',
+        'document.querySelector(".model-notice")?.textContent.includes("连接测试失败")',
       ),
-    '测试失败后仍保留已保存服务的身份',
+    '测试失败保留草稿且不保存服务',
   );
-  assert.equal(service.store.providers.length, 4);
+  assert.equal(service.store.providers.length, 3);
+  await clickButton(window, '保存服务');
+  await waitFor(() => service.store.providers.length === 4, '测试失败后仍可独立保存服务');
   const failedProvider = service.store.providers.find((p) => p.name === '错误入口测试')!;
+  await clickVisibleButton(window, `[data-provider-id="${failedProvider.id}"] button`);
+  await waitFor(
+    () =>
+      window.webContents.executeJavaScript(
+        'document.querySelector("input[name=apiKey]")?.placeholder.includes("已保存")',
+      ),
+    '已保存服务继续编辑时保留原密钥',
+  );
   await clickButton(window, '保存服务');
   await waitFor(
     () =>
       window.webContents.executeJavaScript(
-        'document.body.textContent.includes("模型服务已保存，可以开始对话")',
+        'Boolean(document.querySelector("[data-provider-add=openai]"))',
       ),
-    '失败后再次保存',
+    '再次保存返回服务列表',
   );
   assert.equal(service.store.providers.length, 4);
   await window.webContents.executeJavaScript(
     'window.dola.removeProvider(' + JSON.stringify(failedProvider.id) + ')',
   );
-  await clickButton(window, '返回');
+  await clickButton(window, '返回聊天');
   const firstProvider = service.store.providers.find((p) => p.protocol === 'openai-responses')!;
   await chooseOption(window, 'chat-model', JSON.stringify([firstProvider.id, 'dola-mock-claude']));
   await fillAndSend(window, '帮我安排今天的学习，先询问我的任务与截止时间。');
@@ -2024,7 +2048,7 @@ export async function runDesktopSmoke(service: ChatService, window: BrowserWindo
           '小窗口列表不裁切',
           '聊天快捷选择模型',
           '同一服务内切换模型并保留默认值',
-          '设置页保存并探测',
+          '设置页分别测试和保存当前配置',
           '探测失败后重试不重复创建服务',
           '三协议界面对话',
           '多轮历史',
@@ -2034,7 +2058,7 @@ export async function runDesktopSmoke(service: ChatService, window: BrowserWindo
           'AI真实读取课表待办笔记及关联PDF文本',
           'AI只读邮件目录与正文',
           '读取过程来源展示与笔记定位',
-          '工作台访问关闭及小窗口聊天',
+          '工作台工具始终可用时普通聊天及小窗口布局',
           '重启恢复读取记录与引用',
         ],
         messages: service.store.chat(id).messages.length,
@@ -2067,7 +2091,6 @@ export async function runRestoreSmoke(service: ChatService, window: BrowserWindo
   assert.equal(service.store.chats.length, 2);
   const messages = service.store.chat(data.plainChatId).messages;
   const workbenchChat = service.store.chat(data.workbenchChatId);
-  assert.equal(workbenchChat.workspaceAccess, false);
   assert.equal(workbenchChat.messages[1].sources?.length, data.workbenchSources);
   assert.equal(workbenchChat.messages[1].activity?.length, 12);
   assert(workbenchChat.messages[1].activity?.every((step) => step.status === 'done'));

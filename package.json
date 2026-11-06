@@ -1,7 +1,7 @@
 {
   "name": "neu-dola",
   "productName": "NEU-Dela",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "东北大学学生的本地校园个人助手：课表、待办、笔记、邮件与 AI 工作台",
   "type": "module",
@@ -21,7 +21,8 @@
     "package:win": "npm run build && electron-builder --win --x64 --publish never",
     "smoke:design": "tsx scripts/design-smoke.ts",
     "smoke:actions": "tsx scripts/actions-smoke.ts",
-    "smoke:files": "tsx scripts/local-files-smoke.ts"
+    "smoke:files": "tsx scripts/local-files-smoke.ts",
+    "smoke:settings": "tsx scripts/settings-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",

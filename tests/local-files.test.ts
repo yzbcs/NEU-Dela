@@ -135,7 +135,7 @@ it('移动文件、移除关联与目录误选给出可操作提示', async () =
 
 it('越出已关联目录的文档链接提示补充关联，网络图片提示用浏览器查看', async () => {
   await expect(files.link('folder', '讲义/第一章.md', '../../其他项目/README.md')).rejects.toThrow(
-    '关联范围以外',
+    '资料范围以外',
   );
   await expect(
     files.image('folder', '讲义/第一章.md', 'https://example.org/image.png'),

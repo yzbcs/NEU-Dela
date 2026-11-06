@@ -126,7 +126,7 @@ export function DashboardPage({
       page: 'library',
       label: '我的笔记',
       value: notes.length,
-      hint: `${workspace.resources.length} 项关联资料`,
+      hint: `${workspace.resources.length} 项本地资料`,
       Icon: FileText,
       tone: 'green',
     },

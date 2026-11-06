@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest';
 import { Store, type SecretCodec } from '../src/main/store';
@@ -100,6 +100,38 @@ it('获取模型支持未保存配置，复用已保存密钥，并且不保存�
   ).toHaveLength(3);
   expect(mock.requests.at(-1)!.headers.authorization).toBe('Bearer fixture-private-key');
   expect(store.providers).toHaveLength(1);
+});
+
+it('测试当前模型草稿使用填写的模型和密钥，新增或编辑均不落盘', async () => {
+  const draft = {
+    name: '未保存的服务',
+    protocol: 'openai-responses' as const,
+    baseUrl: mock.url + '/v1',
+    model: 'draft-model',
+    apiKey: 'fixture-unsaved-key',
+  };
+  const files = readdirSync(directory);
+  expect((await service.probeInput(draft)).text).toContain('连接正常');
+  expect(mock.requests.at(-1)!.headers.authorization).toBe('Bearer fixture-unsaved-key');
+  expect(mock.requests.at(-1)!.body.model).toBe('draft-model');
+  expect(store.providers).toEqual([]);
+  expect(readdirSync(directory)).toEqual(files);
+
+  const saved = addProvider();
+  const settings = readFileSync(join(directory, 'settings.json'), 'utf8');
+  const keys = readFileSync(join(directory, 'keys.bin'));
+  await service.probeInput({
+    ...saved,
+    name: '未保存的改名',
+    model: 'draft-other-model',
+    apiKey: '',
+  });
+  expect(mock.requests.at(-1)!.body.model).toBe('draft-other-model');
+  expect(mock.requests.at(-1)!.headers.authorization).toBe('Bearer fixture-private-key');
+  expect(store.provider(saved.id)).toEqual(saved);
+  expect(readFileSync(join(directory, 'settings.json'), 'utf8')).toBe(settings);
+  expect(readFileSync(join(directory, 'keys.bin'))).toEqual(keys);
+  expect(store.chats).toEqual([]);
 });
 
 it('更换服务域名后获取模型需要重新填写密钥，错误内容不回显密钥', async () => {

@@ -379,18 +379,27 @@ it.each<Protocol>(['openai-responses', 'openai-chat', 'anthropic'])(
   },
 );
 
-it('关闭工作台访问时只进行普通对话，不读取和发送模块内容', async () => {
+it('旧聊天保存的关闭标记不影响本轮工具与最新工作台读取', async () => {
   const p = provider();
   const id = store.createChat(p.id);
+  Object.assign(store.chat(id), { workspaceAccess: false });
+  store.saveChats();
+  const reopened = new Store(directory, {
+    encrypt: (text) => Buffer.from(text),
+    decrypt: (bytes) => bytes.toString(),
+  });
+  const restoredService = new ChatService(reopened, () => {});
   const before = mock.requests.length;
-  await service.send(id, '[workbench]', false);
-  expect(mock.requests).toHaveLength(before + 1);
-  expect(mock.requests.at(-1)!.body.tools).toBeUndefined();
-  expect(
-    mock.requests.at(-1)!.body.input.find((item: any) => item.role === 'system').content,
-  ).toContain('未启用工作台访问');
-  expect(store.chat(id).workspaceAccess).toBe(false);
-  expect(store.chat(id).messages.at(-1)?.activity).toBeUndefined();
+  await restoredService.send(id, '[workbench]');
+  const requests = mock.requests.slice(before);
+  expect(requests[0].body.tools).toHaveLength(9);
+  expect(requests[0].body.input.find((item: any) => item.role === 'system').content).toContain(
+    '工作台中有',
+  );
+  const reply = reopened.chat(id).messages.at(-1)!;
+  expect(reply.state).toBe('complete');
+  expect(reply.activity?.some((activity) => activity.status === 'done')).toBe(true);
+  expect(reply.sources?.length).toBeGreaterThan(0);
 });
 
 it('文件不存在时将真实失败交回模型和界面，不伪造来源', async () => {
@@ -413,14 +422,14 @@ it('工具参数尚未完整传输就断流时不执行读取', async () => {
   expect(reply.activity).toBeUndefined();
 });
 
-it('服务拒绝工具时给出可操作提示，不自动重复请求；关闭后可以普通聊天', async () => {
+it('服务拒绝工具时提示更换模型，不自动重复请求；普通问题无需执行工具', async () => {
   const p = provider();
   const id = store.createChat(p.id);
   const before = mock.requests.length;
   await service.send(id, '[tools-unsupported]');
   expect(mock.requests).toHaveLength(before + 1);
-  expect(store.chat(id).messages.at(-1)?.error).toContain('关闭“工作台访问”');
-  await service.send(id, '继续普通聊天', false);
+  expect(store.chat(id).messages.at(-1)?.error).toContain('支持工具调用的模型服务');
+  await service.send(id, '继续普通聊天');
   expect(store.chat(id).messages.at(-1)?.state).toBe('complete');
 });
 

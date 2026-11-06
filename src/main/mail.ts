@@ -38,7 +38,7 @@ export class MailService {
     if (!account) throw new Error('邮箱账号不存在');
     return account;
   }
-  save(raw: MailAccountInput): MailAccount {
+  private prepare(raw: MailAccountInput) {
     const input = accountInput.parse(raw);
     const old = input.id ? this.account(input.id) : undefined;
     if (
@@ -52,18 +52,21 @@ export class MailService {
     const id = input.id ?? randomUUID();
     const password = input.password || this.store.key('mail:' + id);
     if (!password) throw new Error('请填写客户端授权码或专用密码');
-    this.store.setSecret('mail:' + id, password);
+    const { password: ignored, ...metadata } = input;
+    return { account: { ...metadata, id, hasPassword: true }, password, old };
+  }
+  save(raw: MailAccountInput): MailAccount {
+    const { account, password, old } = this.prepare(raw);
+    this.store.setSecret('mail:' + account.id, password);
     if (
       old &&
-      (old.username !== input.username ||
-        old.imapHost !== input.imapHost ||
-        old.email !== input.email)
+      (old.username !== account.username ||
+        old.imapHost !== account.imapHost ||
+        old.email !== account.email)
     )
-      rmSync(join(this.store.dataDirectory, 'mail-cache', id + '.json'), { force: true });
-    const { password: ignored, ...metadata } = input;
-    const account = { ...metadata, id, hasPassword: true };
+      rmSync(join(this.store.dataDirectory, 'mail-cache', account.id + '.json'), { force: true });
     this.store.workspace.mailAccounts = [
-      ...this.store.workspace.mailAccounts.filter((item) => item.id !== id),
+      ...this.store.workspace.mailAccounts.filter((item) => item.id !== account.id),
       account,
     ];
     this.store.saveWorkspace();
@@ -81,13 +84,12 @@ export class MailService {
     this.changed();
   }
   private async connected<T>(
-    id: string,
+    account: MailAccount,
+    password: string,
     run: (client: ImapFlow) => Promise<T>,
     signal?: AbortSignal,
   ): Promise<T> {
     signal?.throwIfAborted();
-    const account = this.account(id),
-      password = this.store.key('mail:' + id);
     const client = new ImapFlow({
       host: account.imapHost,
       port: account.imapPort,
@@ -108,43 +110,49 @@ export class MailService {
       signal?.throwIfAborted();
       return result;
     } catch (error) {
-      throw new Error(this.store.redact(error instanceof Error ? error.message : String(error)));
+      const detail = this.store.redact(error instanceof Error ? error.message : String(error));
+      throw new Error(password ? detail.replaceAll(password, '[已隐藏授权码]') : detail);
     } finally {
       if (client.usable) await client.logout().catch(() => client.close());
       else client.close();
       signal?.removeEventListener('abort', abort);
     }
   }
-  private transport(id: string) {
-    const account = this.account(id);
+  private transport(account: MailAccount, password: string) {
     return nodemailer.createTransport({
       host: account.smtpHost,
       port: account.smtpPort,
       secure: account.smtpTls,
       requireTLS: !account.smtpTls,
-      auth: { user: account.username, pass: this.store.key('mail:' + id) },
+      auth: { user: account.username, pass: password },
       connectionTimeout: 20000,
       greetingTimeout: 20000,
       socketTimeout: 30000,
     });
   }
   async test(id: string) {
-    await this.connected(id, async () => {});
-    const transport = this.transport(id);
+    return this.testConnection(this.account(id));
+  }
+  async testConnection(input: MailAccountInput) {
+    const { account, password } = this.prepare(input);
+    await this.connected(account, password, async () => {});
+    const transport = this.transport(account, password);
     try {
       await transport.verify();
       return 'IMAP 收信与 SMTP 发信连接均成功';
     } catch (error) {
       throw new Error(
         '收信连接成功；发信连接失败：' +
-          this.store.redact(error instanceof Error ? error.message : String(error)),
+          this.store
+            .redact(error instanceof Error ? error.message : String(error))
+            .replaceAll(password, '[已隐藏授权码]'),
       );
     } finally {
       transport.close();
     }
   }
   async folders(id: string) {
-    return this.connected(id, async (client) =>
+    return this.connected(this.account(id), this.store.key('mail:' + id), async (client) =>
       (await client.list())
         .filter((folder) => !folder.flags.has('\\Noselect'))
         .map((folder) => ({ path: folder.path, name: folder.name })),
@@ -152,7 +160,8 @@ export class MailService {
   }
   async list(id: string, folder: string, page: number, signal?: AbortSignal): Promise<MailPage> {
     return this.connected(
-      id,
+      this.account(id),
+      this.store.key('mail:' + id),
       async (client) => {
         const box = await client.mailboxOpen(folder, { readOnly: true });
         const total = box.exists;
@@ -208,7 +217,8 @@ export class MailService {
     signal?: AbortSignal,
   ) {
     return this.connected(
-      id,
+      this.account(id),
+      this.store.key('mail:' + id),
       async (client) => {
         const box = await client.mailboxOpen(folder, { readOnly: true });
         if (box.uidValidity.toString() !== uidValidity)
@@ -279,7 +289,7 @@ export class MailService {
     )
       throw new Error('收件人需为完整邮箱地址，多人用逗号分隔');
     const account = this.account(draft.accountId);
-    const transport = this.transport(account.id);
+    const transport = this.transport(account, this.store.key('mail:' + account.id));
     try {
       const result = await transport.sendMail({
         from: { name: account.name, address: account.email },

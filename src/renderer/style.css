@@ -691,26 +691,6 @@ button:active:not(:disabled) {
   border: 1px solid var(--blue-border);
   color: var(--accent);
 }
-.workspace-access {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 7px 9px;
-  font-size: 10px;
-  background: var(--surface-soft);
-  color: var(--text-muted);
-}
-.workspace-access.enabled {
-  border-color: var(--green-border);
-  color: var(--green-text);
-  background: var(--green-soft);
-}
-.workspace-access:disabled {
-  opacity: 0.7;
-}
 .read-activity {
   border: 1px solid var(--border-soft);
   background: var(--surface-soft);

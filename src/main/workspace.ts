@@ -9,6 +9,7 @@ import {
   type TodoCompletion,
   type TodoInput,
   type Timetable,
+  type TimetableSettings,
   type Course,
 } from '../shared/workspace';
 
@@ -153,6 +154,14 @@ export class WorkspaceService {
     }
     this.store.workspace.timetable = timetable;
     this.save();
+  }
+  updateTimetableSettings(input: TimetableSettings) {
+    this.saveTimetable({
+      ...this.store.workspace.timetable,
+      term: input.term,
+      firstMonday: input.firstMonday,
+      periods: input.periods ?? this.store.workspace.timetable.periods,
+    });
   }
   addCourses(raw: unknown) {
     const input = addCoursesInput.parse(raw);

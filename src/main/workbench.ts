@@ -81,13 +81,13 @@ const descriptions: Record<keyof typeof schemas, string> = {
   create_note:
     '在用户明确要求保存、记录或新建笔记时创建笔记，title 和 body 必填，category 可指定笔记本，留空表示未分类。返回实际保存的笔记。不会覆盖或修改已有笔记。',
   query_workspace:
-    '查询最新工作台数据。overview 查看各模块数量；timetable 用 date 指定北京时间日期，返回当日实际周次课程和上课时间，不指定则返回全学期安排；todos 可用 status=pending/completed/all 筛选未完成/已完成/全部，用 date 只查当天到期事项（不含无时间或逾期事项）；notes 包含笔记和备忘录，query 搜索标题与正文，category 精确筛选笔记本；resources 查已关联资料；mail 查邮箱账号与本地缓存目录；campus 查校园入口。支持 offset、limit，nextOffset 非空时还有结果。先查目录得到真实 ID，再读取正文。',
+    '查询最新工作台数据。overview 查看各模块数量；timetable 用 date 指定北京时间日期，返回当日实际周次课程和上课时间，不指定则返回全学期安排；todos 可用 status=pending/completed/all 筛选未完成/已完成/全部，用 date 只查当天到期事项（不含无时间或逾期事项）；notes 包含笔记和备忘录，query 搜索标题与正文，category 精确筛选笔记本；resources 查本地资料；mail 查邮箱账号与本地缓存目录；campus 查校园入口。支持 offset、limit，nextOffset 非空时还有结果。先查目录得到真实 ID，再读取正文。',
   read_workspace_item:
     '读取指定笔记或便利贴的完整内容。ID 必须来自工作台查询；长内容按 offset、length 分段读取，返回 nextOffset。',
   list_files:
-    '列出已关联文件夹下某一级目录，不递归扫描。resourceId 来自资料目录，path 是该文件夹内的相对路径；一次返回最多 100 项，使用 offset 继续。',
+    '列出本地资料文件夹下某一级目录，不递归扫描。resourceId 来自资料目录，path 是该文件夹内的相对路径；一次返回最多 100 项，使用 offset 继续。',
   read_file:
-    '读取已关联的本机文件，或已关联文件夹内的相对路径。支持 PDF（每次一页）及 UTF-8 文本、Markdown、代码、CSV、JSON。PDF 使用 page 翻页；长文本使用 offset、length，按返回的 nextOffset 继续。不读取网站链接、扫描图片、Word 或未关联的路径。',
+    '读取已添加的本机文件，或本地资料文件夹内的相对路径。支持 PDF（每次一页）及 UTF-8 文本、Markdown、代码、CSV、JSON。PDF 使用 page 翻页；长文本使用 offset、length，按返回的 nextOffset 继续。不读取网站链接、扫描图片、Word 或未添加到本地资料的路径。',
   list_mail:
     '从已配置邮箱读取一页邮件目录，每页最多 40 封。账号 ID 先查询工作台 mail 模块获得；默认收件箱 INBOX。返回 uidValidity 和每封邮件的 uid，供读取正文。不发送邮件。',
   read_mail:
@@ -207,7 +207,7 @@ export class WorkbenchReader {
     const w = this.store.workspace;
     return (
       `当前北京时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}。` +
-      `当前选择：${w.degree === 'undergrad' ? '本科生' : '研究生'}。工作台中有 ${w.timetable.courses.length} 条课程安排、${w.todos.filter((t) => !t.done).length} 项未完成待办、${w.notes.length} 篇笔记、${w.resources.length} 项关联资料、${w.mailAccounts.length} 个邮箱账号。`
+      `当前选择：${w.degree === 'undergrad' ? '本科生' : '研究生'}。工作台中有 ${w.timetable.courses.length} 条课程安排、${w.todos.filter((t) => !t.done).length} 项未完成待办、${w.notes.length} 篇笔记、${w.resources.length} 项本地资料、${w.mailAccounts.length} 个邮箱账号。`
     );
   }
   private resourcePath(id: string, path: string) {
@@ -384,7 +384,7 @@ export class WorkbenchReader {
           .filter((r) => match({ title: r.title, category: r.category }))
           .map(({ path, ...r }) => ({ ...r, ...(r.kind === 'link' ? { url: path } : {}) }));
         source.kind = 'resource';
-        source.label = '关联资料目录';
+        source.label = '本地资料目录';
       } else if (module === 'mail') {
         items = w.mailAccounts
           .map((a) => ({
@@ -461,7 +461,7 @@ export class WorkbenchReader {
       if (!info.isFile()) throw new Error('请选择文件；文件夹请先列出目录。');
       const extension = extname(target.path).toLowerCase();
       if (info.size > (extension === '.pdf' ? 50 : 8) * 1024 * 1024)
-        throw new Error('文件过大：PDF 支持 50 MB 内，文本文件支持 8 MB 内。请拆分后关联。');
+        throw new Error('文件过大：PDF 支持 50 MB 内，文本文件支持 8 MB 内。请拆分后添加。');
       let data: object;
       if (extension === '.pdf') {
         const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -498,7 +498,7 @@ export class WorkbenchReader {
         }
       } else {
         if (!textExtensions.has(extension))
-          throw new Error('暂不支持读取此格式。请关联 PDF、Markdown、UTF-8 文本或代码文件。');
+          throw new Error('暂不支持读取此格式。请添加 PDF、Markdown、UTF-8 文本或代码文件。');
         data = textChunk(await readFile(target.path, { encoding: 'utf8', signal }), offset, length);
       }
       signal.throwIfAborted();

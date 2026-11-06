@@ -69,7 +69,6 @@ export interface Chat {
   model: string;
   messages: ChatMessage[];
   updatedAt: string;
-  workspaceAccess?: boolean;
 }
 
 import type { Workspace, WorkspaceApi } from './workspace';
@@ -88,10 +87,11 @@ export interface DolaApi {
   listModels(input: ProviderConnectionInput): Promise<ModelOption[]>;
   removeProvider(id: string): Promise<void>;
   probeProvider(id: string): Promise<{ text: string; milliseconds: number }>;
+  probeProviderInput(input: ProviderInput): Promise<{ text: string; milliseconds: number }>;
   createChat(providerId?: string, model?: string): Promise<string>;
   selectProvider(chatId: string, providerId: string, model?: string): Promise<void>;
   removeChat(id: string): Promise<void>;
-  send(chatId: string, text: string, workspaceAccess?: boolean): Promise<void>;
+  send(chatId: string, text: string): Promise<void>;
   stop(chatId: string): Promise<void>;
   undoCreation(chatId: string, messageId: string, creationId: string): Promise<void>;
   onOpenTodo(listener: (id: string) => void): () => void;

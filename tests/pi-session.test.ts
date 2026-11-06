@@ -100,17 +100,17 @@ describe.each(protocols)('%s Pi 会话', (protocol) => {
     expect(store.chat(id).messages[1].creations?.[0]).toEqual(receipt);
   });
 
-  it('已有工具轨迹后关闭工作台访问，本次不提供或执行工具', async () => {
+  it('已有工具轨迹后继续普通对话，工具仍可用但不会重复执行旧操作', async () => {
     const id = store.createChat(provider(protocol).id);
     await service.send(id, '保存一个提醒 [repeat-write]');
     expect(store.chat(id).messages.at(-1)?.state).toBe('complete');
     expect(store.workspace.todos).toHaveLength(1);
     const before = mock.requests.length;
     const original = structuredClone(store.workspace);
-    await service.send(id, '再保存一个提醒 [repeat-write]', false);
+    await service.send(id, '说明上一轮已保存的内容，不创建新记录');
     const requests = mock.requests.slice(before);
     expect(requests).toHaveLength(1);
-    expect(requests[0].body.tools ?? []).toEqual([]);
+    expect(requests[0].body.tools).toHaveLength(9);
     expect(store.workspace).toEqual(original);
     expect(store.chat(id).messages.at(-1)).toMatchObject({ state: 'complete' });
     expect(store.chat(id).messages.at(-1)?.creations).toBeUndefined();

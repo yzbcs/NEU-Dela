@@ -42,6 +42,7 @@ export interface TimetableImport {
   text: string;
   warnings: string[];
 }
+export type TimetableSettings = Pick<Timetable, 'term' | 'firstMonday' | 'periods'>;
 export interface Resource {
   id: string;
   title: string;
@@ -154,6 +155,7 @@ export interface WorkspaceApi {
   importTimetable(): Promise<TimetableImport | null>;
   importGraduateTimetable(): Promise<TimetableImport | null>;
   saveTimetable(input: Timetable): Promise<void>;
+  updateTimetableSettings(input: TimetableSettings): Promise<void>;
   exportTimetable(): Promise<string | null>;
   saveNote(input: NoteInput): Promise<string>;
   saveNotebook(name: string, previousName?: string): Promise<void>;
@@ -175,6 +177,7 @@ export interface WorkspaceApi {
   saveMailAccount(input: MailAccountInput): Promise<MailAccount>;
   removeMailAccount(id: string): Promise<void>;
   testMailAccount(id: string): Promise<string>;
+  testMailConnection(input: MailAccountInput): Promise<string>;
   mailFolders(id: string): Promise<MailFolder[]>;
   mailList(id: string, folder: string, page: number): Promise<MailPage>;
   mailCached(id: string, folder: string): Promise<MailPage | null>;
@@ -189,6 +192,7 @@ export interface WorkspaceApi {
   mailSend(draft: MailDraft): Promise<string>;
   getDiagnostics(): Promise<string>;
   showDataFolder(): Promise<void>;
+  getAppInfo(): Promise<{ version: string; dataDirectory: string }>;
 }
 export const periodTimes = [
   ['08:30', '09:15'],

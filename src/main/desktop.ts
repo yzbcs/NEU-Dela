@@ -1,4 +1,4 @@
-import { dialog, Notification, shell, type BrowserWindow } from 'electron';
+import { app, dialog, Notification, shell, type BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -81,6 +81,9 @@ export function desktopApi(
     async saveTimetable(input) {
       service.saveTimetable(input);
     },
+    async updateTimetableSettings(input) {
+      service.updateTimetableSettings(input);
+    },
     async exportTimetable() {
       const table = store.workspace.timetable;
       if (!table.firstMonday || !table.courses.length) throw new Error('请先保存有课程的课表');
@@ -119,7 +122,7 @@ export function desktopApi(
     async addResources(kind, category) {
       if (!['file', 'folder'].includes(kind)) throw new Error('资料类型无效');
       const result = await dialog.showOpenDialog(getWindow(), {
-        title: kind === 'folder' ? '关联资料文件夹' : '关联资料文件',
+        title: kind === 'folder' ? '添加本地资料文件夹' : '添加本地资料文件',
         properties: kind === 'folder' ? ['openDirectory'] : ['openFile', 'multiSelections'],
       });
       if (result.canceled) return;
@@ -203,6 +206,9 @@ export function desktopApi(
     async testMailAccount(value) {
       return mail.test(id(value));
     },
+    async testMailConnection(input) {
+      return mail.testConnection(input);
+    },
     async mailFolders(value) {
       return mail.folders(id(value));
     },
@@ -249,6 +255,9 @@ export function desktopApi(
     async showDataFolder() {
       const error = await shell.openPath(store.dataDirectory);
       if (error) throw new Error(error);
+    },
+    async getAppInfo() {
+      return { version: app.getVersion(), dataDirectory: store.dataDirectory };
     },
   };
   return { api, service, openTodo };

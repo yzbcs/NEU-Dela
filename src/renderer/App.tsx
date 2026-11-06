@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -8,10 +8,7 @@ import {
   ChevronRight,
   CircleHelp,
   Copy,
-  Eye,
-  EyeOff,
   FolderOpen,
-  FileText,
   GraduationCap,
   KeyRound,
   Mail,
@@ -26,7 +23,6 @@ import {
   StickyNote,
   Trash2,
   X,
-  Zap,
   Sun,
   Moon,
   Monitor,
@@ -41,16 +37,13 @@ import type {
   Chat,
   ChatMessage,
   ModelOption,
-  Protocol,
   Provider,
-  ProviderInput,
   WorkspaceSource,
   WorkspaceCreation,
 } from '../shared/types';
-import { protocolLabels, providerDefaults } from '../shared/types';
 import { SelectMenu } from './components/SelectMenu';
 import { emptyWorkspace, type Page } from '../shared/workspace';
-import { TodosPage, TimetablePage, CampusPage, Modal } from './WorkspacePages';
+import { TodosPage, TimetablePage, CampusPage } from './WorkspacePages';
 import { LibraryPage } from './LibraryPage';
 import { flushNoteEdits } from './components/useNoteEditor';
 import { DashboardPage } from './DashboardPage';
@@ -58,6 +51,7 @@ import { MailPage } from './MailPage';
 import { WorkspaceSearch } from './components/WorkspaceSearch';
 import { WorkspaceCreationCard } from './components/WorkspaceCreationCard';
 import { StartupScreen } from './components/StartupScreen';
+import { SettingsPage } from './SettingsPage';
 import type { WorkspaceSearchResult } from '../shared/search';
 import appIcon from '../../assets/icon.png';
 import './workspace.css';
@@ -82,390 +76,6 @@ function Brand({ small = false }: { small?: boolean }) {
         </span>
       )}
     </div>
-  );
-}
-
-function ProviderForm({
-  provider,
-  kind,
-  onSave,
-  saving,
-  onRemove,
-}: {
-  provider?: Provider;
-  kind: 'openai' | 'anthropic';
-  onSave: (input: ProviderInput, test: boolean) => Promise<Provider | undefined>;
-  onRemove: (id: string) => void;
-  saving: boolean;
-}) {
-  const [draft, setDraft] = useState<ProviderInput>(
-    provider ? { ...provider, apiKey: '' } : { ...providerDefaults[kind], apiKey: '' },
-  );
-  const [showKey, setShowKey] = useState(false);
-  const [models, setModels] = useState<ModelOption[]>(provider?.models ?? []);
-  const [fetchingModels, setFetchingModels] = useState(false);
-  const [manualModel, setManualModel] = useState(!provider?.models?.length);
-  const [modelNotice, setModelNotice] = useState('');
-  const update = <K extends keyof ProviderInput>(key: K, value: ProviderInput[K]) => {
-    setDraft((old) => ({ ...old, [key]: value }));
-    if (key === 'protocol' || key === 'baseUrl' || key === 'apiKey') {
-      setModels([]);
-      setManualModel(true);
-      setModelNotice('');
-    }
-  };
-  async function fetchModels() {
-    setFetchingModels(true);
-    setModelNotice('');
-    try {
-      const available = await window.dola.listModels({
-        id: provider?.id,
-        protocol: draft.protocol,
-        baseUrl: draft.baseUrl,
-        apiKey: draft.apiKey || undefined,
-      });
-      setModels(available);
-      setManualModel(available.length === 0);
-      if (available.length) {
-        setDraft((old) => ({ ...old, model: old.model || available[0].id }));
-      } else setModelNotice('服务没有返回可选模型，请手动填写模型 ID。');
-    } catch (error) {
-      setModelNotice('获取失败：' + errorText(error) + ' 可以继续手动填写模型 ID。');
-    } finally {
-      setFetchingModels(false);
-    }
-  }
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const button = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-    void onSave(
-      {
-        id: provider?.id,
-        name: draft.name,
-        protocol: draft.protocol,
-        baseUrl: draft.baseUrl,
-        model: draft.model,
-        models,
-        apiKey: draft.apiKey || undefined,
-      },
-      button?.value === 'test',
-    ).then((saved) => {
-      if (saved) setDraft((old) => ({ ...old, apiKey: '' }));
-    });
-  }
-  return (
-    <form className="provider-form" onSubmit={submit}>
-      <div className="form-heading">
-        <div
-          className={'provider-logo ' + (draft.protocol === 'anthropic' ? 'anthropic' : 'openai')}
-        >
-          {draft.protocol === 'anthropic' ? 'A' : <Sparkles size={24} />}
-        </div>
-        <div>
-          <h2>{provider ? '编辑模型服务' : '添加模型服务'}</h2>
-          <p>连接你选择的模型，让学习和思考继续。</p>
-        </div>
-        {provider && (
-          <button
-            type="button"
-            className="icon-button danger"
-            title="删除此服务"
-            aria-label="删除此服务"
-            onClick={() => onRemove(provider.id)}
-            disabled={saving || fetchingModels}
-          >
-            <Trash2 size={17} />
-          </button>
-        )}
-      </div>
-      <label>
-        服务名称
-        <input
-          name="providerName"
-          required
-          value={draft.name}
-          maxLength={80}
-          onChange={(e) => update('name', e.target.value)}
-          placeholder="例如：我的 OpenAI 服务"
-        />
-      </label>
-      <label htmlFor="provider-protocol">
-        接口类型
-        <SelectMenu
-          id="provider-protocol"
-          name="protocol"
-          label="接口类型"
-          value={draft.protocol}
-          disabled={saving || fetchingModels}
-          onChange={(value) => update('protocol', value as Protocol)}
-          options={[
-            { value: 'openai-responses', label: 'OpenAI · Responses' },
-            { value: 'openai-chat', label: 'OpenAI · Chat Completions（兼容接口）' },
-            { value: 'anthropic', label: 'Anthropic · Messages' },
-          ]}
-        />
-      </label>
-      <label>
-        服务地址
-        <input
-          name="baseUrl"
-          type="url"
-          required
-          value={draft.baseUrl}
-          disabled={saving || fetchingModels}
-          onChange={(e) => update('baseUrl', e.target.value)}
-          spellCheck={false}
-          placeholder={
-            draft.protocol === 'anthropic'
-              ? 'https://api.anthropic.com'
-              : 'https://api.openai.com/v1'
-          }
-        />
-        <small>支持官方服务和对应协议的第三方服务。地址由你确认。</small>
-      </label>
-      <label>
-        API Key
-        <span className="secret-input">
-          <input
-            name="apiKey"
-            type={showKey ? 'text' : 'password'}
-            value={draft.apiKey}
-            disabled={saving || fetchingModels}
-            onChange={(e) => update('apiKey', e.target.value)}
-            autoComplete="new-password"
-            spellCheck={false}
-            required={!provider?.hasKey}
-            placeholder={provider?.hasKey ? '已保存，留空保留现有密钥' : '输入该服务提供的 API Key'}
-          />
-          <button
-            type="button"
-            aria-label={showKey ? '隐藏输入的密钥' : '显示输入的密钥'}
-            onClick={() => setShowKey(!showKey)}
-          >
-            {showKey ? <EyeOff size={17} /> : <Eye size={17} />}
-          </button>
-        </span>
-      </label>
-      <div className="model-field">
-        <label htmlFor="provider-model">模型 ID</label>
-        <div className="model-field-row">
-          {models.length > 0 && !manualModel ? (
-            <SelectMenu
-              id="provider-model"
-              name="model"
-              label="模型 ID"
-              value={draft.model}
-              onChange={(value) => update('model', value)}
-              disabled={saving || fetchingModels}
-              searchable
-              options={[
-                ...(!models.some((model) => model.id === draft.model) && draft.model
-                  ? [{ value: draft.model, label: draft.model }]
-                  : []),
-                ...models.map((model) => ({ value: model.id, label: model.name || model.id })),
-              ]}
-            />
-          ) : (
-            <input
-              id="provider-model"
-              name="model"
-              required
-              value={draft.model}
-              maxLength={200}
-              onChange={(e) => update('model', e.target.value)}
-              placeholder="获取模型列表，或手动填写 ID"
-              spellCheck={false}
-            />
-          )}
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => void fetchModels()}
-            disabled={
-              saving ||
-              fetchingModels ||
-              !draft.baseUrl.trim() ||
-              (!draft.apiKey?.trim() && !provider?.hasKey)
-            }
-          >
-            <RefreshCw size={14} className={fetchingModels ? 'spinning' : ''} />
-            {fetchingModels ? '正在获取' : '获取模型'}
-          </button>
-        </div>
-        {models.length > 0 && (
-          <div className="model-field-help">
-            <span>已获取 {models.length} 个模型</span>
-            <button type="button" onClick={() => setManualModel(!manualModel)}>
-              {manualModel ? '从列表选择' : '手动输入模型 ID'}
-            </button>
-          </div>
-        )}
-        {modelNotice && (
-          <p className="model-notice" role="status">
-            {modelNotice}
-          </p>
-        )}
-      </div>
-      <div className="privacy-note">
-        <ShieldCheck size={18} />
-        <p>密钥通过系统密钥存储加密保存在这台电脑。对话会发送给你选择的服务。</p>
-      </div>
-      <div className="form-footer">
-        <button
-          className="secondary-button"
-          type="submit"
-          value="test"
-          disabled={saving || fetchingModels}
-        >
-          <Zap size={15} />
-          {saving ? '正在处理' : '保存并测试'}
-        </button>
-        <button
-          className="primary-button"
-          type="submit"
-          value="save"
-          disabled={saving || fetchingModels}
-        >
-          <Check size={16} />
-          保存服务
-        </button>
-      </div>
-      <p className="test-explanation">测试会向所选服务发送一条简短消息，可能产生少量费用。</p>
-    </form>
-  );
-}
-
-function Settings({
-  providers,
-  onClose,
-  onSave,
-  saving,
-  onRemove,
-  onError,
-}: {
-  providers: Provider[];
-  onClose: () => void;
-  onSave: (input: ProviderInput, test: boolean) => Promise<Provider | undefined>;
-  saving: boolean;
-  onRemove: (id: string) => void;
-  onError: (error: unknown) => void;
-}) {
-  const [editing, setEditing] = useState(providers[0]?.id ?? 'new-openai');
-  const [diagnostics, setDiagnostics] = useState<string | null>(null);
-  const provider = providers.find((p) => p.id === editing);
-  useEffect(() => {
-    if (!editing.startsWith('new-') && !providers.some((p) => p.id === editing)) {
-      setEditing(providers[0]?.id ?? 'new-openai');
-    }
-  }, [providers, editing]);
-  return (
-    <section className="settings-page">
-      <header className="page-header">
-        <div>
-          <span className="eyebrow">PREFERENCES</span>
-          <h1>设置</h1>
-          <p>管理模型服务与应用帮助。</p>
-        </div>
-        <button className="secondary-button" onClick={onClose}>
-          <X size={16} />
-          返回
-        </button>
-      </header>
-      <div className="settings-grid">
-        <aside className="provider-list">
-          <span className="section-label">
-            我的服务 <span>{providers.length}</span>
-          </span>
-          {providers.map((p) => (
-            <button
-              key={p.id}
-              className={'provider-item ' + (editing === p.id ? 'selected' : '')}
-              onClick={() => setEditing(p.id)}
-              disabled={saving}
-            >
-              <span className={'tiny-logo ' + (p.protocol === 'anthropic' ? 'anthropic' : '')}>
-                {p.protocol === 'anthropic' ? 'A' : <Sparkles size={16} />}
-              </span>
-              <span>
-                <strong>{p.name}</strong>
-                <small>{protocolLabels[p.protocol]}</small>
-              </span>
-              <ChevronRight size={15} />
-            </button>
-          ))}
-          <div className="add-service-label">添加服务</div>
-          <button
-            className={'add-service ' + (editing === 'new-openai' ? 'selected' : '')}
-            onClick={() => setEditing('new-openai')}
-            disabled={saving}
-          >
-            <Plus size={16} />
-            OpenAI 接口
-          </button>
-          <button
-            className={'add-service ' + (editing === 'new-anthropic' ? 'selected' : '')}
-            onClick={() => setEditing('new-anthropic')}
-            disabled={saving}
-          >
-            <Plus size={16} />
-            Anthropic 接口
-          </button>
-          <div className="settings-tip">
-            <CircleHelp size={17} />
-            <p>模型由服务提供方运行。你可以添加多个服务，在对话输入框下方切换。</p>
-          </div>
-        </aside>
-        <ProviderForm
-          key={editing}
-          provider={provider}
-          kind={editing === 'new-anthropic' ? 'anthropic' : 'openai'}
-          saving={saving}
-          onRemove={onRemove}
-          onSave={async (input, test) => {
-            const saved = await onSave(input, test);
-            if (saved) setEditing(saved.id);
-            return saved;
-          }}
-        />
-      </div>
-      <details className="settings-support">
-        <summary>
-          <CircleHelp size={15} />
-          帮助与诊断
-        </summary>
-        <p className="muted">遇到问题时，可以查看本机日志，或打开应用数据文件夹。</p>
-        <div className="diagnostic-actions">
-          <button
-            className="secondary-button"
-            onClick={() =>
-              window.dola.workspace.getDiagnostics().then(setDiagnostics).catch(onError)
-            }
-          >
-            <FileText size={15} />
-            查看错误日志
-          </button>
-          <button
-            className="secondary-button"
-            onClick={() => window.dola.workspace.showDataFolder().catch(onError)}
-          >
-            <FolderOpen size={15} />
-            打开本地数据目录
-          </button>
-        </div>
-      </details>
-      {diagnostics !== null && (
-        <Modal title="错误日志" onClose={() => setDiagnostics(null)} wide>
-          <p className="muted">日志保存在这台电脑，已隐藏已保存的密钥和邮箱授权码。</p>
-          <pre className="diagnostics-text">{diagnostics}</pre>
-          <button
-            className="secondary-button"
-            onClick={() => navigator.clipboard.writeText(diagnostics).catch(onError)}
-          >
-            复制日志
-          </button>
-        </Modal>
-      )}
-    </section>
   );
 }
 
@@ -623,9 +233,9 @@ const starters = [
   {
     icon: <FolderOpen size={19} />,
     title: '查找学习资料',
-    description: '从已关联的文件和笔记开始，找到需要的内容',
+    description: '从已添加的文件和笔记开始，找到需要的内容',
     prompt:
-      '请先查询我的关联资料与笔记目录，按主题整理已有学习资料，并注明来源；不清楚我的目标时，先问我想学习哪方面。',
+      '请先查询我的本地资料与笔记目录，按主题整理已有学习资料，并注明来源；不清楚我的目标时，先问我想学习哪方面。',
   },
 ];
 
@@ -717,17 +327,20 @@ export function App() {
   const [focusChatMessageId, setFocusChatMessageId] = useState<string>();
   const [focusRequest, setFocusRequest] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [accessDraft, setAccessDraft] = useState<{
-    chatId: string | null;
-    enabled: boolean;
-  } | null>(null);
   const [state, setState] = useState<AppState>(empty);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newSelection, setNewSelection] = useState<{ providerId: string; model: string } | null>(
     null,
   );
-  const [settings, setSettings] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<{
+    request: number;
+    fromChat: boolean;
+    initialPage?: 'models';
+    activeProviderId?: string;
+  } | null>(null);
+  const settingsRequest = useRef(0);
+  const chatScroll = useRef<HTMLDivElement>(null);
+  const returnScroll = useRef<{ chatId: string | null; top: number } | null>(null);
   const [prompt, setPrompt] = useState('');
   const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null);
   const [pending, setPending] = useState<string[]>([]);
@@ -743,7 +356,7 @@ export function App() {
     return () => clearTimeout(timer);
   }, [notice]);
   function navigate(next: Page) {
-    setSettings(false);
+    setSettings(null);
     setFocusNoteId(undefined);
     setFocusMailId(undefined);
     setFocusTodoId(undefined);
@@ -762,7 +375,7 @@ export function App() {
   function openResource(id: string, path = '') {
     const resource = state.workspace.resources.find((item) => item.id === id);
     if (!resource) {
-      fail(new Error('这项资料已移除关联，请到资料与笔记重新关联。'));
+      fail(new Error('这项资料已移除，请到资料与笔记重新添加。'));
       return;
     }
     if (resource.kind === 'link') {
@@ -886,8 +499,6 @@ export function App() {
     return () => clearTimeout(timer);
   }, [notice]);
   const chat = state.chats.find((c) => c.id === activeId);
-  const workspaceAccess =
-    accessDraft?.chatId === activeId ? accessDraft.enabled : (chat?.workspaceAccess ?? true);
   const providerId = chat
     ? (chat.providerId ?? '')
     : (state.providers.find((p) => p.id === newSelection?.providerId)?.id ??
@@ -904,6 +515,19 @@ export function App() {
   const demo =
     state.providers.length > 0 && state.providers.every((p) => p.model.startsWith('dola-mock-'));
   useEffect(() => {
+    if (settings) return;
+    if (page !== 'chat') {
+      returnScroll.current = null;
+      return;
+    }
+    if (returnScroll.current !== null) {
+      const previous = returnScroll.current;
+      returnScroll.current = null;
+      if (previous.chatId === activeId && chatScroll.current) {
+        chatScroll.current.scrollTop = previous.top;
+        return;
+      }
+    }
     if (focusChatMessageId)
       document
         .querySelector(`[data-message-id="${CSS.escape(focusChatMessageId)}"]`)
@@ -914,55 +538,36 @@ export function App() {
   function fail(error: unknown) {
     setNotice({ text: errorText(error), error: true });
   }
-  async function saveProvider(input: ProviderInput, test: boolean) {
-    setSaving(true);
-    try {
-      const saved = await window.dola.saveProvider(input);
-      setNewSelection({ providerId: saved.id, model: saved.model });
-      if (test) {
-        try {
-          const result = await window.dola.probeProvider(saved.id);
-          setNotice({ text: '连接成功 · ' + result.milliseconds + ' ms · ' + result.text });
-        } catch (error) {
-          setNotice({ text: '服务已保存，连接测试失败：' + errorText(error), error: true });
-        }
-      } else setNotice({ text: '模型服务已保存，可以开始对话。' });
-      return saved;
-    } catch (error) {
-      fail(error);
-      return undefined;
-    } finally {
-      setSaving(false);
-    }
-  }
-  async function removeProvider(id: string) {
-    if (!window.confirm('删除这个模型服务？已有对话会保留。')) return;
-    try {
-      await window.dola.removeProvider(id);
-      setNotice({ text: '模型服务已移除' });
-    } catch (error) {
-      fail(error);
-    }
+  function openSettings(fromChat = false) {
+    returnScroll.current =
+      page === 'chat' && chatScroll.current
+        ? { chatId: activeId, top: chatScroll.current.scrollTop }
+        : null;
+    setSettings({
+      request: ++settingsRequest.current,
+      fromChat,
+      initialPage: fromChat ? 'models' : undefined,
+      activeProviderId: fromChat ? providerId : undefined,
+    });
   }
   async function send() {
     setFocusChatMessageId(undefined);
     if (!prompt.trim() || busy) return;
     if (!provider) {
-      setSettings(true);
+      openSettings(true);
       return;
     }
     const text = prompt;
     let id = activeId;
     try {
-      if (workspaceAccess) await flushNoteEdits();
+      await flushNoteEdits();
       if (!chat) {
         id = await window.dola.createChat(provider.id, model);
-        setAccessDraft({ chatId: id, enabled: workspaceAccess });
         setActiveId(id);
       }
       setPending((old) => [...old, id!]);
       setPrompt('');
-      await window.dola.send(id!, text, workspaceAccess);
+      await window.dola.send(id!, text);
     } catch (error) {
       setPrompt(text);
       fail(error);
@@ -1013,11 +618,11 @@ export function App() {
         <button
           className="new-chat"
           onClick={() => {
-            setSettings(false);
+            setSettings(null);
             setPage('chat');
             setFocusChatMessageId(undefined);
             setActiveId(null);
-            setAccessDraft(null);
+
             setPrompt('');
             composer.current?.focus();
           }}
@@ -1097,7 +702,7 @@ export function App() {
                   onClick={() => {
                     setActiveId(item.id);
                     setFocusChatMessageId(undefined);
-                    setSettings(false);
+                    setSettings(null);
                     setPage('chat');
                     if (item.id !== activeId) setPrompt('');
                   }}
@@ -1150,7 +755,7 @@ export function App() {
           </div>
           <button
             className={settings ? 'nav-item active' : 'nav-item'}
-            onClick={() => setSettings(true)}
+            onClick={() => openSettings()}
           >
             <Settings2 size={18} />
             设置
@@ -1169,12 +774,21 @@ export function App() {
       </aside>
       <main className="main">
         {settings ? (
-          <Settings
-            providers={state.providers}
-            onClose={() => setSettings(false)}
-            onSave={saveProvider}
-            saving={saving}
-            onRemove={removeProvider}
+          <SettingsPage
+            key={settings.request}
+            state={state}
+            initialPage={settings.initialPage}
+            activeProviderId={settings.activeProviderId}
+            fromChat={settings.fromChat}
+            onClose={() => setSettings(null)}
+            onNavigate={(next) => {
+              navigate(next);
+              if (next === 'library') {
+                setFocusLibrary({ category: '', tab: 'files' });
+                setFocusRequest((value) => value + 1);
+              }
+            }}
+            onNotice={(text) => setNotice({ text })}
             onError={fail}
           />
         ) : page !== 'chat' ? (
@@ -1232,11 +846,11 @@ export function App() {
                 if (!resource) return;
                 if (provider) setNewSelection({ providerId: provider.id, model });
                 setActiveId(null);
-                setAccessDraft({ chatId: null, enabled: true });
+
                 setPrompt((text) =>
                   [
                     text.trim(),
-                    `请读取本地资料《${file.title}》：关联项“${resource.title}”，位置为“${resource.path}”${file.path ? `，相对路径为“${file.path}”` : ''}。请先读取原文件，再整理要点并注明来源。`,
+                    `请读取本地资料《${file.title}》：资料“${resource.title}”，位置为“${resource.path}”${file.path ? `，相对路径为“${file.path}”` : ''}。请先读取原文件，再整理要点并注明来源。`,
                   ]
                     .filter(Boolean)
                     .join('\n\n'),
@@ -1246,7 +860,7 @@ export function App() {
               onAskNote={(note) => {
                 if (provider) setNewSelection({ providerId: provider.id, model });
                 setActiveId(null);
-                setAccessDraft({ chatId: null, enabled: true });
+
                 setPrompt((text) =>
                   [
                     text.trim(),
@@ -1269,7 +883,7 @@ export function App() {
                 <ChevronRight size={14} />
                 <strong>AI 助手</strong>
               </div>
-              <button className="header-settings" onClick={() => setSettings(true)}>
+              <button className="header-settings" onClick={() => openSettings(true)}>
                 <Settings2 size={16} />
                 模型设置
               </button>
@@ -1280,7 +894,7 @@ export function App() {
                 本地模拟演示 · 回复来自测试服务，不代表真实模型能力
               </div>
             )}
-            <div className="chat-scroll">
+            <div className="chat-scroll" ref={chatScroll}>
               {!chat?.messages.length ? (
                 <section className="welcome">
                   <div className="welcome-identity">
@@ -1290,7 +904,7 @@ export function App() {
                   <h1>从一件具体的事开始</h1>
                   <p>课程怎么安排，笔记怎么整理，或是一个还没想明白的问题。</p>
                   {!state.providers.length && loaded && (
-                    <button className="setup-callout" onClick={() => setSettings(true)}>
+                    <button className="setup-callout" onClick={() => openSettings(true)}>
                       <span>
                         <KeyRound size={20} />
                       </span>
@@ -1307,7 +921,7 @@ export function App() {
                         key={item.title}
                         onClick={() => {
                           setPrompt(item.prompt);
-                          setAccessDraft({ chatId: chat?.id ?? null, enabled: true });
+
                           composer.current?.focus();
                         }}
                       >
@@ -1369,17 +983,6 @@ export function App() {
                       else setNewSelection({ providerId: selectedProvider, model: selectedModel });
                     }}
                   />
-                  <button
-                    className={'workspace-access ' + (workspaceAccess ? 'enabled' : '')}
-                    aria-label="工作台访问"
-                    aria-pressed={workspaceAccess}
-                    disabled={busy}
-                    title="按问题读取工作台，并按你的指令创建待办、课程或笔记；相关内容会发送给所选模型服务"
-                    onClick={() => setAccessDraft({ chatId: activeId, enabled: !workspaceAccess })}
-                  >
-                    <Database size={13} />
-                    工作台{workspaceAccess ? '已连接' : '未连接'}
-                  </button>
                   <div className="send-area">
                     <span>{busy ? '正在生成回复' : 'Enter 发送 · Shift + Enter 换行'}</span>
                     <button
@@ -1398,9 +1001,7 @@ export function App() {
               </div>
               <p className="composer-footnote">
                 <ShieldCheck size={12} />
-                {workspaceAccess
-                  ? '可读取工作台，并按你的指令创建待办、课程和笔记。相关内容会交给所选模型服务；创建后可查看、修改或撤销。'
-                  : '工作台访问已关闭，仅发送当前对话内容给所选模型服务。'}
+                AI 会按问题使用工作台内容，相关内容交给当前模型服务；保存结果可查看和撤销。
               </p>
             </div>
           </>

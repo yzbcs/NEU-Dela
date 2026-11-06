@@ -170,7 +170,7 @@ export async function runLocalFilesSmoke(
         readFileSync(join(folder, '阅读 笔记.md'), 'utf8'),
         firstBody + '\n外部修改后新段落。\n',
       );
-      record('重启后关联目录、上次阅读的文件与外部更新内容恢复，原文件未被预览改写');
+      record('重启后添加目录、上次阅读的文件与外部更新内容恢复，原文件未被预览改写');
       await screenshot('files-restored');
       saveReport(true, { resourceId, restartPassed: true });
       return;
@@ -187,7 +187,7 @@ export async function runLocalFilesSmoke(
       'Markdown 表格代码和本地相对图片',
     );
     assert.equal(readFileSync(join(folder, '阅读 笔记.md'), 'utf8'), firstBody);
-    record('逐级展开关联目录并阅读含中文空格文件名的 Markdown，表格、代码和相对本地图片显示');
+    record('逐级展开添加目录并阅读含中文空格文件名的 Markdown，表格、代码和相对本地图片显示');
 
     await window.webContents.executeJavaScript(
       `Array.from(document.querySelectorAll('.local-file-reader a')).find(link => link.textContent === '继续阅读').click()`,
@@ -334,7 +334,7 @@ export async function runLocalFilesSmoke(
     await click(window, `[data-search-kind="resource"][data-search-id="${resourceId}"]`);
     await waitFor(
       () => exists(window, '.local-file-reader[data-kind="folder"][data-path=""]'),
-      '全局搜索进入关联目录',
+      '全局搜索进入添加目录',
     );
     await readFile(filePath, '外部修改后新段落');
     await click(window, '.workspace-search-trigger');
@@ -342,22 +342,22 @@ export async function runLocalFilesSmoke(
     await click(window, `[data-search-kind="resource"][data-search-id="${resourceId}"]`);
     await waitFor(
       () => exists(window, '.local-file-reader[data-kind="folder"][data-path=""]'),
-      '重复搜索同一关联目录仍定位到目录',
+      '重复搜索同一添加目录仍定位到目录',
     );
-    record('全局搜索关联目录在应用内打开，随后可继续阅读其中的文件');
+    record('全局搜索添加目录在应用内打开，随后可继续阅读其中的文件');
 
-    const addedPath = join(directory, '新关联.md');
-    writeFileSync(addedPath, '# 新关联的阅读资料\n');
+    const addedPath = join(directory, '新添加.md');
+    writeFileSync(addedPath, '# 新添加的阅读资料\n');
     const originalOpen = dialog.showOpenDialog;
     dialog.showOpenDialog = (async () => ({
       canceled: false,
       filePaths: [addedPath],
     })) as typeof dialog.showOpenDialog;
     try {
-      await button(window, '关联文件');
+      await button(window, '添加文件');
       await waitFor(
-        () => text(window, '.local-file-reader').then((body) => body.includes('新关联的阅读资料')),
-        '新关联文件立即阅读',
+        () => text(window, '.local-file-reader').then((body) => body.includes('新添加的阅读资料')),
+        '新添加文件立即阅读',
       );
     } finally {
       dialog.showOpenDialog = originalOpen;
@@ -367,10 +367,10 @@ export async function runLocalFilesSmoke(
     await click(window, `[data-search-kind="resource"][data-search-id="${resourceId}"]`);
     await waitFor(
       () => exists(window, '.local-file-reader[data-kind="folder"][data-path=""]'),
-      '关联文件后搜索可以重新定位到其他资料',
+      '添加文件后搜索可以重新定位到其他资料',
     );
     await readFile(filePath, '外部修改后新段落');
-    record('关联文件立即显示正文，随后全局搜索能切换到另一关联资料');
+    record('添加文件立即显示正文，随后全局搜索能切换到另一添加资料');
     assert.equal(
       readFileSync(join(folder, '阅读 笔记.md'), 'utf8'),
       firstBody + '\n外部修改后新段落。\n',

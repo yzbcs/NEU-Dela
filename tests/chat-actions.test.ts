@@ -187,18 +187,17 @@ describe.each(protocols)('%s 写入联动', (protocol) => {
     expect(savedRecord(reopened, reply.creations![0])).toEqual(reply.creations![0].record);
   });
 
-  it('关闭工作台访问不提供写工具，不创建记录', async () => {
+  it('旧聊天关闭标记不会阻止明确创建请求获得写工具和真实回执', async () => {
     const id = createChat(protocol);
     const before = mock.requests.length;
-    const original = structuredClone(store.workspace);
-    await service.send(id, '请添加便利贴、课程和笔记 [create-workspace]', false);
+    Object.assign(store.chat(id), { workspaceAccess: false });
+    await service.send(id, '请添加便利贴、课程和笔记 [create-workspace]');
     const reply = store.chat(id).messages.at(-1)!;
     expect(reply.state).toBe('complete');
-    expect(reply.creations).toBeUndefined();
-    expect(reply.activity).toBeUndefined();
-    expect(store.workspace).toEqual(original);
-    expect(mock.requests.slice(before)).toHaveLength(1);
-    expect(mock.requests.at(-1)?.body.tools).toBeUndefined();
+    expect(reply.creations).toHaveLength(3);
+    expect(reply.activity?.every((activity) => activity.status === 'done')).toBe(true);
+    expect(mock.requests.slice(before).length).toBeGreaterThan(1);
+    expect(mock.requests[before].body.tools).toHaveLength(9);
   });
 
   it('重启后可逐条撤销，原记录保留，撤销状态再次重启仍在', async () => {

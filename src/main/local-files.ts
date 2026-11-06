@@ -31,19 +31,21 @@ export function resolveResourcePath(
   path: string,
 ): { resource: Resource; path: string } {
   const resource = resources.find((item) => item.id === resourceId);
-  if (!resource) throw new Error('资料不存在，可能已移除，请重新关联。');
+  if (!resource) throw new Error('资料不存在，可能已移除，请重新添加。');
   if (resource.kind === 'link') throw new Error('网页资料请在浏览器中打开。');
   const root = rootPath(resource);
   const target = resolve(root, path || (resource.kind === 'file' ? basename(resource.path) : '.'));
   const child = relative(root, target);
   if (child === '..' || child.startsWith('..' + sep) || isAbsolute(child))
-    throw new Error('只能读取已关联范围内的相对路径；链接指向关联范围以外，请先关联对应的文件夹。');
+    throw new Error(
+      '只能读取已添加资料范围内的相对路径；链接指向资料范围以外，请先添加对应的文件夹。',
+    );
   return { resource, path: target };
 }
 
 function localError(error: unknown): never {
   const code = (error as NodeJS.ErrnoException).code;
-  if (code === 'ENOENT') throw new Error('文件或文件夹已移动或删除，请刷新或重新关联。');
+  if (code === 'ENOENT') throw new Error('文件或文件夹已移动或删除，请刷新或重新添加。');
   if (code === 'EACCES' || code === 'EPERM')
     throw new Error('无法读取此位置，请检查文件访问权限。');
   if (code === 'ENOTDIR') throw new Error('这个位置不是文件夹，请刷新目录。');
@@ -71,7 +73,7 @@ export class LocalFiles {
 
   async list(resourceId: string, path: string, offset = 0): Promise<LocalDirectory> {
     const target = this.resolvePath(resourceId, path);
-    if (target.resource.kind !== 'folder') throw new Error('请选择已关联的文件夹。');
+    if (target.resource.kind !== 'folder') throw new Error('请选择已添加的文件夹。');
     const entries = (await readdir(target.path, { withFileTypes: true }).catch(localError)).sort(
       (a, b) =>
         Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name, 'zh-CN'),

@@ -6,11 +6,16 @@ import {
   type AgentSession,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
-import type { AppState, ChatMessage, ProviderConnectionInput } from '../shared/types';
+import type {
+  AppState,
+  ChatMessage,
+  ProviderConnectionInput,
+  ProviderInput,
+} from '../shared/types';
 import { describeError, listModels, streamReply } from './ai';
 import { createChatSession, savedSessionPath } from './pi-session';
 import type { Store } from './store';
-import { sdkBaseUrl } from '../shared/validation';
+import { providerInput, sdkBaseUrl } from '../shared/validation';
 import {
   WorkbenchReader,
   activityLabel,
@@ -35,7 +40,7 @@ export class ChatService {
     return this.running.has(chatId);
   }
 
-  async send(chatId: string, text: string, workspaceAccess = true): Promise<void> {
+  async send(chatId: string, text: string): Promise<void> {
     const chat = this.store.chat(chatId);
     if (this.busy(chatId)) throw new Error('请先等待当前回复结束或停止生成');
     if (!text.trim()) throw new Error('请输入消息');
@@ -65,7 +70,6 @@ export class ChatService {
     chat.messages.push(user);
     chat.messages.push(reply);
     chat.model = provider.model;
-    chat.workspaceAccess = workspaceAccess;
     chat.updatedAt = now;
     const controller = new AbortController();
     this.running.set(chatId, controller);
@@ -80,78 +84,76 @@ export class ChatService {
     const abortSession = () => void session?.abort();
     controller.signal.addEventListener('abort', abortSession, { once: true });
     const completedWrites: { name: string; args: unknown; result: WorkbenchResult }[] = [];
-    const tools: ToolDefinition[] = workspaceAccess
-      ? workbenchTools.map((tool) => ({
-          ...tool,
-          label: activityLabel(tool.name),
-          parameters: tool.parameters as ToolDefinition['parameters'],
-          executionMode: 'sequential',
-          execute: async (_toolCallId, params, signal) => {
-            if (++toolCalls > 12) throw new Error('本次已执行 12 项工具操作，请基于已有结果回答。');
-            const raw = JSON.stringify(params);
-            const creates = ['create_todo', 'add_courses', 'create_note'].includes(tool.name);
-            const args = creates ? normalizeCreationArguments(tool.name, raw) : undefined;
-            const previous = creates
-              ? completedWrites.find(
-                  (item) => item.name === tool.name && isDeepStrictEqual(item.args, args),
-                )
-              : undefined;
-            try {
-              const result =
-                previous?.result ??
-                (await this.workbench.execute(tool.name, raw, signal ?? controller.signal));
-              if (creates && !previous) completedWrites.push({ name: tool.name, args, result });
-              if (result.creations?.length && !previous) {
-                reply.creations ??= [];
-                reply.creations.push(...result.creations);
-                // Persist the real write before Pi requests the model's continuation.
-                this.store.saveChats();
-              }
-              let citation: string | undefined;
-              if (result.source) {
-                const sourceInfo = result.source;
-                reply.sources ??= [];
-                let source = reply.sources.find(
-                  (item) =>
-                    item.kind === sourceInfo.kind &&
-                    item.id === sourceInfo.id &&
-                    item.label === sourceInfo.label,
-                );
-                if (!source) {
-                  source = { ...sourceInfo, citation: reply.sources.length + 1 };
-                  reply.sources.push(source);
-                }
-                citation = `[${source.citation}]`;
-              }
-              this.changed();
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: this.store.redact(
-                      JSON.stringify({
-                        citation,
-                        data: result.data,
-                        ...(previous
-                          ? {
-                              repeatedCall: true,
-                              message: '已返回本轮先前保存的结果，没有重复创建。',
-                            }
-                          : {}),
-                      }),
-                    ),
-                  },
-                ],
-                details: { detail: this.store.redact(result.detail) },
-              };
-            } catch (error) {
-              throw new Error(
-                this.store.redact(error instanceof Error ? error.message : String(error)),
-              );
+    const tools: ToolDefinition[] = workbenchTools.map((tool) => ({
+      ...tool,
+      label: activityLabel(tool.name),
+      parameters: tool.parameters as ToolDefinition['parameters'],
+      executionMode: 'sequential',
+      execute: async (_toolCallId, params, signal) => {
+        if (++toolCalls > 12) throw new Error('本次已执行 12 项工具操作，请基于已有结果回答。');
+        const raw = JSON.stringify(params);
+        const creates = ['create_todo', 'add_courses', 'create_note'].includes(tool.name);
+        const args = creates ? normalizeCreationArguments(tool.name, raw) : undefined;
+        const previous = creates
+          ? completedWrites.find(
+              (item) => item.name === tool.name && isDeepStrictEqual(item.args, args),
+            )
+          : undefined;
+        try {
+          const result =
+            previous?.result ??
+            (await this.workbench.execute(tool.name, raw, signal ?? controller.signal));
+          if (creates && !previous) completedWrites.push({ name: tool.name, args, result });
+          if (result.creations?.length && !previous) {
+            reply.creations ??= [];
+            reply.creations.push(...result.creations);
+            // Persist the real write before Pi requests the model's continuation.
+            this.store.saveChats();
+          }
+          let citation: string | undefined;
+          if (result.source) {
+            const sourceInfo = result.source;
+            reply.sources ??= [];
+            let source = reply.sources.find(
+              (item) =>
+                item.kind === sourceInfo.kind &&
+                item.id === sourceInfo.id &&
+                item.label === sourceInfo.label,
+            );
+            if (!source) {
+              source = { ...sourceInfo, citation: reply.sources.length + 1 };
+              reply.sources.push(source);
             }
-          },
-        }))
-      : [];
+            citation = `[${source.citation}]`;
+          }
+          this.changed();
+          return {
+            content: [
+              {
+                type: 'text',
+                text: this.store.redact(
+                  JSON.stringify({
+                    citation,
+                    data: result.data,
+                    ...(previous
+                      ? {
+                          repeatedCall: true,
+                          message: '已返回本轮先前保存的结果，没有重复创建。',
+                        }
+                      : {}),
+                  }),
+                ),
+              },
+            ],
+            details: { detail: this.store.redact(result.detail) },
+          };
+        } catch (error) {
+          throw new Error(
+            this.store.redact(error instanceof Error ? error.message : String(error)),
+          );
+        }
+      },
+    }));
     try {
       session = await createChatSession({
         store: this.store,
@@ -160,7 +162,7 @@ export class ChatService {
         provider,
         apiKey: key,
         tools,
-        workspaceContext: workspaceAccess ? this.workbench.summary() : undefined,
+        workspaceContext: this.workbench.summary(),
       });
       controller.signal.throwIfAborted();
       session.subscribe((event) => {
@@ -186,13 +188,8 @@ export class ChatService {
           };
           if (message.stopReason === 'error')
             reply.error = describeError(new Error(message.errorMessage || '模型请求失败'), key);
-          if (
-            message.content.some((part) => part.type === 'toolCall') &&
-            (!workspaceAccess || toolRounds >= 6)
-          ) {
-            limitError = new Error(
-              '模型仍要求调用工具，但工作台访问已关闭或达到本次上限，请缩小问题范围后再试。',
-            );
+          if (message.content.some((part) => part.type === 'toolCall') && toolRounds >= 6) {
+            limitError = new Error('模型仍要求调用工具，但已达到本次上限，请缩小问题范围后再试。');
             session!.agent.abort();
           }
         } else if (event.type === 'tool_execution_start') {
@@ -261,21 +258,15 @@ export class ChatService {
       else if (!reply.text && !reply.creations?.length)
         throw new Error('模型没有返回文字，请检查模型 ID 或接口类型。');
       else reply.state = 'complete';
-      if (
-        reply.state === 'error' &&
-        workspaceAccess &&
-        /(?:tool|function.?call)/i.test(reply.error ?? '')
-      )
-        reply.error +=
-          ' 如果该服务不支持工具调用，可关闭“工作台访问”进行普通聊天，或切换支持工具的模型。';
+      if (reply.state === 'error' && /(?:tool|function.?call)/i.test(reply.error ?? ''))
+        reply.error += ' 请切换支持工具调用的模型服务后重试。';
     } catch (error) {
       if (controller.signal.aborted) reply.state = 'stopped';
       else {
         reply.state = 'error';
         reply.error = this.store.redact(describeError(error, key));
-        if (workspaceAccess && /(?:tool|function.?call)/i.test(reply.error))
-          reply.error +=
-            ' 如果该服务不支持工具调用，可关闭“工作台访问”进行普通聊天，或切换支持工具的模型。';
+        if (/(?:tool|function.?call)/i.test(reply.error))
+          reply.error += ' 请切换支持工具调用的模型服务后重试。';
       }
     } finally {
       controller.signal.removeEventListener('abort', abortSession);
@@ -359,7 +350,14 @@ export class ChatService {
   }
 
   async probe(id: string) {
-    const provider = this.store.provider(id);
+    return this.probeInput(this.store.provider(id));
+  }
+
+  async probeInput(raw: ProviderInput) {
+    const input = providerInput.parse(raw);
+    const key = this.store.connectionKey(input);
+    const { apiKey: ignored, ...metadata } = input;
+    const provider = { ...metadata, id: input.id ?? 'draft', hasKey: true };
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30_000);
     const started = Date.now();
@@ -367,7 +365,7 @@ export class ChatService {
     try {
       await streamReply(
         provider,
-        this.store.key(id),
+        key,
         [{ role: 'user', text: '请只回复“连接正常”。' }],
         controller.signal,
         (delta) => {
@@ -377,7 +375,7 @@ export class ChatService {
       );
       return { text, milliseconds: Date.now() - started };
     } catch (error) {
-      throw new Error(describeError(error, this.store.key(id)));
+      throw new Error(describeError(error, key));
     } finally {
       clearTimeout(timer);
     }

@@ -3,7 +3,13 @@ import { mkdtempSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { Store } from '../src/main/store';
 import { WorkspaceService } from '../src/main/workspace';
-import { advanceReminder, parseWeeks, weekAt, type Todo } from '../src/shared/workspace';
+import {
+  advanceReminder,
+  parseWeeks,
+  periodTimes,
+  weekAt,
+  type Todo,
+} from '../src/shared/workspace';
 import { readTimetable, timetableIcs } from '../src/main/timetable';
 import { makeTimetableFixture } from '../scripts/workspace-fixtures';
 let directory: string, store: Store, service: WorkspaceService, notifications: Todo[];
@@ -108,6 +114,52 @@ it('周次支持分段与单双周，学期周数按周一和北京时间计算'
   expect(() => parseWeeks('0-99')).toThrow();
   expect(weekAt('2026-11-02', '2026-11-08')).toBe(1);
   expect(weekAt('2026-11-02', '2026-11-09')).toBe(2);
+});
+
+it('单独更新学期与节次保留当前课程和导入来源，拒绝无效时间后不落盘', () => {
+  service.saveTimetable({
+    term: '原学期',
+    firstMonday: '2026-08-31',
+    sourcePath: '/fixture/course.pdf',
+    sourceName: '原导入课表.pdf',
+    sourceUrl: 'https://example.test/course',
+    periods: periodTimes.map(([start, end]) => [start, end]),
+    courses: [
+      {
+        id: 'original-course',
+        name: '课程',
+        day: 1,
+        start: 1,
+        end: 2,
+        weeks: '1-16',
+        location: 'A101',
+        teacher: '教师',
+        detail: '原有备注',
+      },
+    ],
+  });
+  const original = structuredClone(store.workspace.timetable);
+  const periods: [string, string][] = periodTimes.map(([start, end]) => [start, end]);
+  periods[0] = ['08:20', '09:10'];
+  service.updateTimetableSettings({ term: '新学期', firstMonday: '2027-03-01', periods });
+  expect(store.workspace.timetable).toEqual({
+    ...original,
+    term: '新学期',
+    firstMonday: '2027-03-01',
+    periods,
+  });
+  const saved = readFileSync(join(directory, 'workspace.json'), 'utf8');
+  expect(() =>
+    service.updateTimetableSettings({ term: '错误学期', firstMonday: '2027-03-02', periods }),
+  ).toThrow('周一');
+  expect(() =>
+    service.updateTimetableSettings({
+      term: '错误学期',
+      firstMonday: '2027-03-01',
+      periods: periods.map((period, index) => (index === 0 ? ['10:00', '09:00'] : period)),
+    }),
+  ).toThrow('节次时间');
+  expect(readFileSync(join(directory, 'workspace.json'), 'utf8')).toBe(saved);
 });
 it('笔记编辑使用同一个 ID 并在重启后保留内容', () => {
   const id = service.saveNote({ title: '课程笔记', body: '# 线性代数', category: '课程' });

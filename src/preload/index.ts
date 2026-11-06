@@ -11,6 +11,7 @@ const workspaceMethods: (keyof WorkspaceApi)[] = [
   'importTimetable',
   'importGraduateTimetable',
   'saveTimetable',
+  'updateTimetableSettings',
   'exportTimetable',
   'saveNote',
   'saveNotebook',
@@ -32,6 +33,7 @@ const workspaceMethods: (keyof WorkspaceApi)[] = [
   'saveMailAccount',
   'removeMailAccount',
   'testMailAccount',
+  'testMailConnection',
   'mailFolders',
   'mailList',
   'mailCached',
@@ -40,6 +42,7 @@ const workspaceMethods: (keyof WorkspaceApi)[] = [
   'mailSend',
   'getDiagnostics',
   'showDataFolder',
+  'getAppInfo',
 ];
 
 contextBridge.exposeInMainWorld('dola', {
@@ -54,13 +57,14 @@ contextBridge.exposeInMainWorld('dola', {
   saveProvider: (input: ProviderInput) => ipcRenderer.invoke('dola:provider-save', input),
   removeProvider: (id: string) => ipcRenderer.invoke('dola:provider-remove', id),
   probeProvider: (id: string) => ipcRenderer.invoke('dola:provider-probe', id),
+  probeProviderInput: (input: ProviderInput) =>
+    ipcRenderer.invoke('dola:provider-probe-input', input),
   listModels: (input: ProviderConnectionInput) => ipcRenderer.invoke('dola:provider-models', input),
   createChat: (id?: string, model?: string) => ipcRenderer.invoke('dola:chat-create', id, model),
   selectProvider: (chatId: string, providerId: string, model?: string) =>
     ipcRenderer.invoke('dola:chat-provider', chatId, providerId, model),
   removeChat: (id: string) => ipcRenderer.invoke('dola:chat-remove', id),
-  send: (id: string, text: string, workspaceAccess?: boolean) =>
-    ipcRenderer.invoke('dola:chat-send', id, text, workspaceAccess),
+  send: (id: string, text: string) => ipcRenderer.invoke('dola:chat-send', id, text),
   stop: (id: string) => ipcRenderer.invoke('dola:chat-stop', id),
   undoCreation: (chatId: string, messageId: string, creationId: string) =>
     ipcRenderer.invoke('dola:chat-undo-creation', chatId, messageId, creationId),

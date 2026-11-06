@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, afterEach, expect, it, vi } from 'vitest';
-import { mkdirSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, mkdtempSync, rmSync, readFileSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import nodemailer from 'nodemailer';
 import { simpleParser } from 'mailparser';
 import { Store } from '../src/main/store';
@@ -92,4 +92,43 @@ it('实际 TLS SMTP 验证连接并发送人工邮件，中文主题和正文经
   await expect(
     mail.send({ accountId: account.id, to: 'not-an-address', subject: '测试', text: '测试' }),
   ).rejects.toThrow('完整邮箱');
+});
+
+it('测试未保存邮箱连接只验证当前参数，不保存账号、授权码或收取邮件', async () => {
+  const input = {
+    name: '未保存的邮箱',
+    email: 'student@example.test',
+    username: 'student@example.test',
+    password: 'fixture-unsaved-password',
+    imapHost: '127.0.0.1',
+    imapPort: fixture.imapPort,
+    imapTls: false,
+    smtpHost: '127.0.0.1',
+    smtpPort: fixture.smtpPort,
+    smtpTls: true,
+  };
+  const commands = fixture.commands.length;
+  const sent = fixture.sent.length;
+  const files = readdirSync(directory);
+  expect(await mail.testConnection(input)).toContain('均成功');
+  expect(store.workspace.mailAccounts).toEqual([]);
+  expect(readdirSync(directory)).toEqual(files);
+  expect(fixture.sent).toHaveLength(sent);
+  expect(
+    fixture.commands
+      .slice(commands)
+      .some((command) => /\s(?:SELECT|EXAMINE|FETCH)\b/i.test(command)),
+  ).toBe(false);
+
+  // A different saved port proves the test uses the current form rather than saved metadata.
+  const saved = mail.save({ ...input, imapPort: 1 });
+  const workspace = readFileSync(join(directory, 'workspace.json'), 'utf8');
+  const keys = readFileSync(join(directory, 'keys.bin'));
+  expect(
+    await mail.testConnection({ ...saved, imapPort: fixture.imapPort, password: '' }),
+  ).toContain('均成功');
+  expect(mail.account(saved.id).imapPort).toBe(1);
+  expect(readFileSync(join(directory, 'workspace.json'), 'utf8')).toBe(workspace);
+  expect(readFileSync(join(directory, 'keys.bin'))).toEqual(keys);
+  expect(mail.cached(saved.id, 'INBOX')).toBeNull();
 });

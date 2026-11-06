@@ -516,7 +516,7 @@ export function LocalFilesPane({
           {root && (
             <button
               className="local-remove"
-              aria-label={'移除关联 ' + item.title}
+              aria-label={'移除资料 ' + item.title}
               onClick={() => void api().removeResource(item.id).catch(onError)}
             >
               <X size={13} />
@@ -568,7 +568,7 @@ export function LocalFilesPane({
                 </button>
                 <button
                   className="local-remove"
-                  aria-label={'移除关联 ' + item.title}
+                  aria-label={'移除资料 ' + item.title}
                   onClick={() => void api().removeResource(item.id).catch(onError)}
                 >
                   <X size={13} />
@@ -583,8 +583,8 @@ export function LocalFilesPane({
               <FolderOpen size={23} />
               <p>
                 {search || category
-                  ? '没有符合当前筛选的关联资料。'
-                  : '关联一个常用文件夹，从这里开始阅读。'}
+                  ? '没有符合当前筛选的资料。'
+                  : '添加一个常用文件夹，从这里开始阅读。'}
               </p>
             </div>
           )}

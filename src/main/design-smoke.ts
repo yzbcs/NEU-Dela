@@ -62,7 +62,7 @@ async function capture(window: BrowserWindow, name: string, layouts: Record<stri
       return [{selector,x:bounds.x,y:bounds.y,width:bounds.width,height:bounds.height,background:style.backgroundColor,opacity:style.opacity,
         animations:node.getAnimations().map(animation=>({currentTime:animation.currentTime,playState:animation.playState}))}];
     }),
-    scrolls:Array.from(document.querySelectorAll('.app-shell,.main,.work-page,.chat-scroll,.settings-page')).map(node=>({className:node.className,top:node.scrollTop,left:node.scrollLeft}))
+    scrolls:Array.from(document.querySelectorAll('.app-shell,.main,.work-page,.chat-scroll,.settings-workspace')).map(node=>({className:node.className,top:node.scrollTop,left:node.scrollLeft}))
   }))()`;
   const before = await window.webContents.executeJavaScript(geometry);
   // 等有限的入场动画和主题过渡完成，避免截取动画中的颜色与位置。
@@ -71,7 +71,7 @@ async function capture(window: BrowserWindow, name: string, layouts: Record<stri
   );
   await window.webContents.executeJavaScript(`(() => {
     document.scrollingElement?.scrollTo({top:0,left:0,behavior:'instant'});
-    document.querySelectorAll('.app-shell,.main,.work-page,.chat-scroll,.settings-page').forEach(node=>node.scrollTo({top:0,left:0,behavior:'instant'}));
+    document.querySelectorAll('.app-shell,.main,.work-page,.chat-scroll,.settings-workspace').forEach(node=>node.scrollTo({top:0,left:0,behavior:'instant'}));
     return new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)));
   })()`);
   let stable = '',
@@ -438,7 +438,7 @@ export async function runDesignSmoke(service: ChatService, window: BrowserWindow
     );
     screenshots.push(await capture(window, 'home-compact', screenshotLayouts));
     await button(window, '设置');
-    await waitFor(() => exists(window, '.settings-page'), '小窗口设置可打开');
+    await waitFor(() => exists(window, '.settings-workspace'), '小窗口设置可打开');
     await button(window, chat.title);
     await waitFor(() => exists(window, '.message-assistant'), '小窗口历史对话可打开');
     record('1024×700 首页无横向溢出，下一步、历史与设置入口可见可用');

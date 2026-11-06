@@ -78,6 +78,7 @@ function registerIpc() {
     service.changed();
   });
   handle('provider-probe', (id: unknown) => service.probe(uuid.parse(id)));
+  handle('provider-probe-input', (raw: unknown) => service.probeInput(providerInput.parse(raw)));
   handle('provider-models', (raw: unknown) =>
     service.listModels(providerConnectionInput.parse(raw)),
   );
@@ -93,12 +94,8 @@ function registerIpc() {
     service.selectModel(uuid.parse(chatId), uuid.parse(providerId), modelId.parse(model)),
   );
   handle('chat-remove', (id: unknown) => service.removeChat(uuid.parse(id)));
-  handle('chat-send', (id: unknown, text: unknown, workspaceAccess: unknown) =>
-    service.send(
-      uuid.parse(id),
-      z.string().trim().min(1).max(100000).parse(text),
-      z.boolean().default(true).parse(workspaceAccess),
-    ),
+  handle('chat-send', (id: unknown, text: unknown) =>
+    service.send(uuid.parse(id), z.string().trim().min(1).max(100000).parse(text)),
   );
   handle('chat-stop', (id: unknown) => service.stop(uuid.parse(id)));
   handle('chat-undo-creation', (chatId: unknown, messageId: unknown, creationId: unknown) =>
@@ -252,10 +249,19 @@ app
       process.argv.includes('--smoke-actions') ||
       process.argv.includes('--smoke-actions-restore') ||
       process.argv.includes('--smoke-local-files') ||
-      process.argv.includes('--smoke-local-files-restore')
+      process.argv.includes('--smoke-local-files-restore') ||
+      process.argv.includes('--smoke-settings') ||
+      process.argv.includes('--smoke-settings-restore')
     ) {
       try {
-        if (process.argv.some((arg) => arg.startsWith('--smoke-local-files'))) {
+        if (process.argv.some((arg) => arg.startsWith('--smoke-settings'))) {
+          const { runSettingsSmoke } = await import('./settings-smoke');
+          await runSettingsSmoke(
+            service,
+            window,
+            process.argv.includes('--smoke-settings-restore'),
+          );
+        } else if (process.argv.some((arg) => arg.startsWith('--smoke-local-files'))) {
           const { runLocalFilesSmoke } = await import('./local-files-smoke');
           await runLocalFilesSmoke(
             service,
@@ -282,13 +288,15 @@ app
       } catch (error) {
         const directory = join(
           process.cwd(),
-          process.argv.some((arg) => arg.startsWith('--smoke-local-files'))
-            ? 'assets/output/local-files-validation'
-            : process.argv.some((arg) => arg.startsWith('--smoke-actions'))
-              ? 'assets/output/actions-validation'
-              : process.argv.includes('--smoke-design')
-                ? 'assets/output/design-validation'
-                : 'assets/output/ai-validation',
+          process.argv.some((arg) => arg.startsWith('--smoke-settings'))
+            ? 'assets/output/settings-validation'
+            : process.argv.some((arg) => arg.startsWith('--smoke-local-files'))
+              ? 'assets/output/local-files-validation'
+              : process.argv.some((arg) => arg.startsWith('--smoke-actions'))
+                ? 'assets/output/actions-validation'
+                : process.argv.includes('--smoke-design')
+                  ? 'assets/output/design-validation'
+                  : 'assets/output/ai-validation',
         );
         mkdirSync(directory, { recursive: true });
         writeFileSync(

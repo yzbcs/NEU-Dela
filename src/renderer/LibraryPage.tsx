@@ -210,11 +210,11 @@ export function LibraryPage({
       >
         <button className="secondary-button" onClick={() => void addResources('folder')}>
           <FolderOpen size={15} />
-          关联文件夹
+          添加文件夹
         </button>
         <button className="secondary-button" onClick={() => void addResources('file')}>
           <Upload size={15} />
-          关联文件
+          添加文件
         </button>
         <button className="primary-button" disabled={busy} onClick={() => void newNote()}>
           <Plus size={15} />
@@ -235,9 +235,7 @@ export function LibraryPage({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={
-              tab === 'notes' ? '搜索笔记标题、内容或分类' : '筛选关联资料名称、路径或分类'
-            }
+            placeholder={tab === 'notes' ? '搜索笔记标题、内容或分类' : '筛选资料名称、路径或分类'}
           />
         </label>
         {tab === 'files' && (
