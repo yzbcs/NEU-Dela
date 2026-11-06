@@ -1,0 +1,13 @@
+node_modules/
+out/
+assets/input/
+assets/output/
+assets/logs/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.tsbuildinfo
+
+# Local development handoff contains machine-specific validation history.
+/docs/README.md

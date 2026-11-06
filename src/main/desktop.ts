@@ -1,0 +1,229 @@
+import { dialog, Notification, shell, type BrowserWindow } from 'electron';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { basename, join } from 'node:path';
+import { z } from 'zod';
+import type { Store } from './store';
+import type { WorkspaceApi } from '../shared/workspace';
+import { WorkspaceService } from './workspace';
+import { MailService } from './mail';
+import { readTimetable, timetableIcs } from './timetable';
+import { openGraduateImport } from './graduate-window';
+
+export function desktopApi(
+  store: Store,
+  changed: () => void,
+  getWindow: () => BrowserWindow,
+  showWindow: () => void,
+) {
+  const openTodo = (id: string) => {
+    showWindow();
+    getWindow().webContents.send('dola:open-todo', id);
+  };
+  const notify = (title: string, body: string, todoId?: string) => {
+    if (!Notification.isSupported()) throw new Error('当前系统不支持桌面通知');
+    const notification = new Notification({ title, body });
+    notification.on('click', () => (todoId ? openTodo(todoId) : showWindow()));
+    notification.show();
+  };
+  const service = new WorkspaceService(store, changed, (todo) =>
+    notify(
+      'NEU-Dela · ' + todo.title,
+      todo.detail || '到时间了，打开工作台查看这条便利贴。',
+      todo.id,
+    ),
+  );
+  const mail = new MailService(store, changed);
+  const id = (value: string) => z.string().uuid().parse(value);
+  const url = (value: string) => {
+    const parsed = new URL(value);
+    if (!['https:', 'http:'].includes(parsed.protocol))
+      throw new Error('请输入 HTTP/HTTPS 网站地址');
+    return parsed.href;
+  };
+  const api: WorkspaceApi = {
+    async saveTodo(input) {
+      service.saveTodo(input);
+    },
+    async toggleTodo(value) {
+      service.toggleTodo(id(value));
+    },
+    async undoTodo(value, previous) {
+      service.undoTodo(id(value), previous);
+    },
+    async removeTodo(value) {
+      service.removeTodo(id(value));
+    },
+    async testNotification() {
+      notify('NEU-Dela 提醒测试', '如果看到了这条通知，便利贴提醒已可以显示。');
+    },
+    async importTimetable() {
+      const result = await dialog.showOpenDialog(getWindow(), {
+        title: '导入课表 PDF',
+        properties: ['openFile'],
+        filters: [{ name: 'PDF 课表', extensions: ['pdf'] }],
+      });
+      if (result.canceled || !result.filePaths[0]) return null;
+      const original = result.filePaths[0];
+      const directory = join(store.dataDirectory, 'timetables');
+      mkdirSync(directory, { recursive: true });
+      const destination = join(directory, randomUUID() + '.pdf');
+      copyFileSync(original, destination);
+      const draft = await readTimetable(destination);
+      draft.sourceName = basename(original);
+      return draft;
+    },
+    async importGraduateTimetable() {
+      return openGraduateImport(store.dataDirectory, showWindow);
+    },
+    async saveTimetable(input) {
+      service.saveTimetable(input);
+    },
+    async exportTimetable() {
+      const table = store.workspace.timetable;
+      if (!table.firstMonday || !table.courses.length) throw new Error('请先保存有课程的课表');
+      const result = await dialog.showSaveDialog(getWindow(), {
+        title: '导出到系统日历',
+        defaultPath: 'NEU-课表.ics',
+        filters: [{ name: '日历文件', extensions: ['ics'] }],
+      });
+      if (result.canceled || !result.filePath) return null;
+      writeFileSync(result.filePath, timetableIcs(table));
+      return result.filePath;
+    },
+    async saveNote(input) {
+      return service.saveNote(input);
+    },
+    async saveNotebook(name, previousName) {
+      service.saveNotebook(name, previousName);
+    },
+    async removeNotebook(name) {
+      service.removeNotebook(name);
+    },
+    async removeNote(value) {
+      service.removeNote(id(value));
+    },
+    async exportNote(value) {
+      const note = store.workspace.notes.find((item) => item.id === id(value));
+      if (!note) throw new Error('笔记不存在');
+      const result = await dialog.showSaveDialog(getWindow(), {
+        defaultPath: note.title.replace(/[<>:"/\\|?*]/g, '_') + '.md',
+        filters: [{ name: 'Markdown', extensions: ['md'] }],
+      });
+      if (result.canceled || !result.filePath) return null;
+      writeFileSync(result.filePath, '# ' + note.title + '\n\n' + note.body);
+      return result.filePath;
+    },
+    async addResources(kind, category) {
+      if (!['file', 'folder'].includes(kind)) throw new Error('资料类型无效');
+      const result = await dialog.showOpenDialog(getWindow(), {
+        title: kind === 'folder' ? '关联资料文件夹' : '关联资料文件',
+        properties: kind === 'folder' ? ['openDirectory'] : ['openFile', 'multiSelections'],
+      });
+      if (result.canceled) return;
+      for (const path of result.filePaths)
+        if (!store.workspace.resources.some((item) => item.path === path))
+          store.workspace.resources.unshift({
+            id: randomUUID(),
+            title: basename(path),
+            kind,
+            path,
+            category,
+            addedAt: new Date().toISOString(),
+          });
+      service.save();
+    },
+    async addLink(title, path, category) {
+      store.workspace.resources.unshift({
+        id: randomUUID(),
+        title: title.trim() || new URL(path).hostname,
+        path: url(path),
+        kind: 'link',
+        category,
+        addedAt: new Date().toISOString(),
+      });
+      service.save();
+    },
+    async removeResource(value) {
+      store.workspace.resources = store.workspace.resources.filter((item) => item.id !== id(value));
+      service.save();
+    },
+    async openResource(value) {
+      const item = store.workspace.resources.find((item) => item.id === id(value));
+      if (!item) throw new Error('资料不存在');
+      if (item.kind === 'link') await shell.openExternal(url(item.path));
+      else {
+        const error = await shell.openPath(item.path);
+        if (error) throw new Error('文件可能已移动或删除：' + error);
+      }
+    },
+    async openLocal(path) {
+      const error = await shell.openPath(z.string().min(1).parse(path));
+      if (error) throw new Error(error);
+    },
+    async openWebsite(value) {
+      await shell.openExternal(url(value));
+    },
+    async setDegree(value) {
+      store.workspace.degree = z.enum(['undergrad', 'graduate']).parse(value);
+      service.save();
+    },
+    async saveMailAccount(input) {
+      return mail.save(input);
+    },
+    async removeMailAccount(value) {
+      mail.remove(id(value));
+    },
+    async testMailAccount(value) {
+      return mail.test(id(value));
+    },
+    async mailFolders(value) {
+      return mail.folders(id(value));
+    },
+    async mailList(value, folder, page) {
+      return mail.list(
+        id(value),
+        z.string().min(1).parse(folder),
+        z.number().int().min(1).parse(page),
+      );
+    },
+    async mailCached(value, folder) {
+      return mail.cached(id(value), z.string().min(1).parse(folder));
+    },
+    async mailRead(value, folder, uid, validity) {
+      return mail.read(
+        id(value),
+        z.string().min(1).parse(folder),
+        z.number().int().positive().parse(uid),
+        z.string().min(1).parse(validity),
+      );
+    },
+    async mailAttachment(value, folder, uid, validity, index) {
+      const attachment = await mail.attachment(
+        id(value),
+        z.string().min(1).parse(folder),
+        z.number().int().positive().parse(uid),
+        z.string().min(1).parse(validity),
+        z.number().int().nonnegative().parse(index),
+      );
+      const result = await dialog.showSaveDialog(getWindow(), {
+        defaultPath: basename(attachment.filename ?? '附件'),
+      });
+      if (result.canceled || !result.filePath) return null;
+      writeFileSync(result.filePath, attachment.content);
+      return result.filePath;
+    },
+    async mailSend(draft) {
+      return mail.send(draft);
+    },
+    async getDiagnostics() {
+      const path = join(store.dataDirectory, 'logs', 'dola.log');
+      return existsSync(path) ? store.redact(readFileSync(path, 'utf8')) : '暂无错误日志。';
+    },
+    async showDataFolder() {
+      const error = await shell.openPath(store.dataDirectory);
+      if (error) throw new Error(error);
+    },
+  };
+  return { api, service, openTodo };
+}

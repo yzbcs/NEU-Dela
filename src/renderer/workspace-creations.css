@@ -1,0 +1,113 @@
+.workspace-creations {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.workspace-creation {
+  padding: 16px;
+  border: 1px solid var(--green-border);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+}
+.workspace-creation > header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green-text);
+  font-size: 11px;
+  margin-bottom: 11px;
+}
+.workspace-creation > header small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 10px;
+}
+.workspace-creation-title {
+  display: block;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+.workspace-creation-detail {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 5px 0;
+}
+.workspace-creation-fields {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.workspace-creation-fields p {
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+.workspace-creation-fields pre {
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 180px;
+  overflow: auto;
+  padding: 10px;
+  margin: 9px 0;
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+.workspace-creation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.workspace-creation-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  border-radius: 7px;
+  font-size: 11px;
+}
+.workspace-creation-actions button:hover:not(:disabled) {
+  background: var(--hover);
+}
+.workspace-creation-actions button:disabled {
+  color: var(--text-muted);
+  opacity: 0.65;
+}
+.workspace-creation.undone {
+  border-color: var(--border);
+}
+.workspace-creation.undone > header {
+  color: var(--text-muted);
+}
+.workspace-creation-error {
+  font-size: 11px;
+  color: var(--rose-text);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 10px 0 0;
+}
+.todo-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+.todo-quick-actions .secondary-button {
+  font-size: 11px;
+  padding: 9px 11px;
+}

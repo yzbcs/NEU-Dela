@@ -1,0 +1,69 @@
+:root {
+  color-scheme: light;
+  --page: light-dark(#f2f1ed, #151f23);
+  --sidebar: light-dark(#e8ede9, #111c20);
+  --surface: light-dark(#faf9f6, #1e2b30);
+  --surface-soft: light-dark(#eeefea, #19262a);
+  --field: light-dark(#f1f2ed, #172429);
+  --hover: light-dark(#e2eae5, #2a3b40);
+  --selected: light-dark(#dce9e4, #2b454a);
+  --border: light-dark(#d0d8d2, #35494d);
+  --border-soft: light-dark(#e1e5de, #2c3d42);
+  --border-strong: light-dark(#afc4ba, #5b777b);
+  --focus: light-dark(#568c88, #99c8bd);
+  --focus-ring: light-dark(#6b91b62b, #8bb6e32b);
+  --text-strong: light-dark(#233b40, #e4eeea);
+  --text: light-dark(#405a5f, #cbdad7);
+  --text-secondary: light-dark(#526b6e, #b1c5c2);
+  --text-muted: light-dark(#607575, #98afae);
+  --accent: light-dark(#315f70, #9fcfc5);
+  --accent-fill: light-dark(#315e70, #3c6c75);
+  --accent-fill-hover: light-dark(#284f60, #477d83);
+  --on-accent: #f7faff;
+  --brand-bg: #163f58;
+  --blue-soft: light-dark(#e0eaf4, #24364c);
+  --blue-border: light-dark(#bdcee1, #405873);
+  --blue-text: light-dark(#456587, #accbed);
+  --blue-muted: light-dark(#486482, #9ab2ce);
+  --green-soft: light-dark(#e1ecdf, #23372e);
+  --green-border: light-dark(#c3d5bf, #3d5b49);
+  --green-text: light-dark(#44684d, #b8d7bd);
+  --green-muted: light-dark(#4b654b, #9dbfa4);
+  --green-fill: light-dark(#5f8b73, #78ae90);
+  --yellow-soft: light-dark(#f0e8ca, #343022);
+  --yellow-border: light-dark(#d6c99a, #615435);
+  --yellow-text: light-dark(#6b5727, #e2ce91);
+  --yellow-muted: light-dark(#756236, #c5b485);
+  --yellow-fill: light-dark(#ad873c, #c4a466);
+  --rose-soft: light-dark(#f0e1e2, #3b2a33);
+  --rose-border: light-dark(#d9bfc5, #684652);
+  --rose-text: light-dark(#8c555d, #edb9c4);
+  --rose-muted: light-dark(#805660, #cba4b0);
+  --rose-fill: light-dark(#b47c86, #c892a0);
+  --violet-soft: light-dark(#eae2f0, #312a41);
+  --violet-border: light-dark(#d2c2df, #58486e);
+  --violet-text: light-dark(#72528c, #ccb8e6);
+  --overlay: light-dark(#1b2b3f40, #070d17a8);
+  --shadow-color: light-dark(#263b5410, #02060c45);
+  --check-fill: light-dark(#ffffff55, #ffffff08);
+  --scrollbar: light-dark(#b8c6d6, #52637b);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+::selection {
+  background: var(--selected);
+  color: var(--text-strong);
+}
+* {
+  scrollbar-color: var(--scrollbar) transparent;
+  scrollbar-width: thin;
+}

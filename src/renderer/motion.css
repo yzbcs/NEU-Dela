@@ -1,0 +1,147 @@
+/* Animate small surfaces on mount; live messages and page containers stay still. */
+.work-header,
+.settings-page > .page-header,
+.chat-header,
+.welcome > .welcome-identity,
+.welcome > h1 {
+  animation: dola-header-enter 180ms ease-out;
+}
+
+.modal-backdrop {
+  animation: dola-fade-in 120ms ease-out;
+}
+
+.work-modal {
+  animation: dola-dialog-enter 200ms cubic-bezier(0.2, 0.75, 0.25, 1);
+  transform-origin: center;
+}
+
+.select-menu {
+  animation: dola-surface-enter 140ms ease-out;
+}
+
+.workspace-search-results,
+.agenda-items,
+.todo-completion-bar,
+.agenda-backlog[open] .agenda-backlog-list {
+  animation: dola-fade-in 160ms ease-out;
+}
+
+.nav-item,
+.theme-switcher button,
+.segment-tabs button,
+.notebook-item,
+.workspace-search-filters button,
+.workspace-search-result,
+.agenda-days button,
+.agenda-item,
+.dashboard-stat,
+.dashboard-note,
+.dashboard-shortcut,
+.campus-link-card {
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 120ms ease-out;
+}
+
+.nav-item > svg,
+.workspace-search-result > svg,
+.agenda-item > svg:last-child,
+.dashboard-note > svg:last-child,
+.dashboard-shortcut > svg:last-child,
+.agenda-days button > strong {
+  transition:
+    transform 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.nav-item:hover > svg,
+.workspace-search-result[aria-selected='true'] > svg,
+.agenda-item:hover > svg:last-child,
+.dashboard-note:hover > svg:last-child,
+.dashboard-shortcut:hover > svg:last-child {
+  transform: translateX(2px);
+}
+
+.agenda-days button[aria-pressed='true'] {
+  box-shadow: 0 2px 7px var(--shadow-color);
+}
+
+.agenda-days button[aria-pressed='true'] > strong {
+  transform: translateY(-1px);
+}
+
+.workspace-search-input,
+.composer,
+.work-form input,
+.work-form textarea {
+  transition:
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+@keyframes dola-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dola-header-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dola-surface-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dola-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Preserve every state and focus outline, without movement or delayed feedback. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  button:active:not(:disabled),
+  .nav-item:hover > svg,
+  .workspace-search-result[aria-selected='true'] > svg,
+  .agenda-item:hover > svg:last-child,
+  .dashboard-note:hover > svg:last-child,
+  .dashboard-shortcut:hover > svg:last-child,
+  .agenda-days button[aria-pressed='true'] > strong {
+    transform: none;
+  }
+}
