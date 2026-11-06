@@ -225,7 +225,8 @@ export async function runSettingsSmoke(
     await waitForTheme('dark');
     await overview();
     await capture('settings-dark', 'dark');
-    window.setSize(1024, 700);
+    // Exclude the platform's native window frame from viewport comparisons.
+    window.setContentSize(1024, 700);
     await settle(window);
     assert(
       await window.webContents.executeJavaScript(
@@ -233,11 +234,11 @@ export async function runSettingsSmoke(
       ),
     );
     await capture('settings-compact', 'dark');
-    window.setSize(1360, 900);
+    window.setContentSize(1360, 900);
     await open('appearance');
     await click(window, '[data-theme-choice="light"]');
     await waitForTheme('light');
-    record('外观显示真实当前值并保存，设置总览在深浅主题和 1024×700 窗口无横向溢出');
+    record('外观显示真实当前值并保存，设置总览在深浅主题和 1024×700 内容区域无横向溢出');
 
     await open('models');
     assert.equal(await exists(window, '.provider-form'), false);

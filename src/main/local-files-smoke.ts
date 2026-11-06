@@ -263,22 +263,23 @@ export async function runLocalFilesSmoke(
       '深色',
     );
     await screenshot('files-dark');
-    window.setSize(1024, 700);
+    // Compare the same page viewport; Windows adds a native title bar and menu.
+    window.setContentSize(1024, 700);
     await new Promise((done) => setTimeout(done, 120));
     assert(
       await window.webContents.executeJavaScript(
         `(() => {const page=document.querySelector('.library-page');const pane=document.querySelector('.local-files-pane');return page.scrollWidth<=page.clientWidth+1&&pane.scrollWidth<=pane.clientWidth+1;})()`,
       ),
     );
-    assert(
-      await window.webContents.executeJavaScript(
-        `document.querySelector('.local-reader-scroll').clientHeight >= 250`,
-      ),
-      '小窗口必须保留至少 250px 的正文阅读区域',
+    const readerHeight = await window.webContents.executeJavaScript(
+      `document.querySelector('.local-reader-scroll').clientHeight`,
     );
+    assert(readerHeight >= 250, `小窗口必须保留至少 250px 的正文阅读区域，实际 ${readerHeight}px`);
     await screenshot('files-compact');
-    window.setSize(1360, 900);
-    record('本地资料在深浅主题与 1024×700 窗口可读，无整页横向溢出');
+    window.setContentSize(1360, 900);
+    record(
+      `本地资料在深浅主题与 1024×700 内容区域可读，正文高度 ${readerHeight}px，无整页横向溢出`,
+    );
 
     const chatCount = service.store.chats.length;
     await button(window, '询问这份资料');
