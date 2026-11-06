@@ -100,7 +100,7 @@ export interface ToolSpec {
 export const workbenchTools: ToolSpec[] = Object.entries(schemas).map(([name, schema]) => ({
   name,
   description: descriptions[name as keyof typeof schemas],
-  parameters: z.toJSONSchema(schema),
+  parameters: z.toJSONSchema(schema, { io: 'input' }),
 }));
 export function activityLabel(name: string) {
   return (

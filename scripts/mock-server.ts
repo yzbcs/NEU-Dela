@@ -8,11 +8,34 @@ export interface MockRequest {
   headers: IncomingMessage['headers'];
   body: any;
 }
+export function fixtureText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .filter((block) => ['text', 'input_text', 'output_text'].includes(block.type))
+    .map((block) => block.text ?? '')
+    .join('');
+}
+export function fixtureCurrentTurn(body: any) {
+  const key = Array.isArray(body.input) ? 'input' : 'messages';
+  const turns = body[key] ?? [];
+  const index = turns.findLastIndex(
+    (turn: any) => turn.role === 'user' && fixtureText(turn.content).trim(),
+  );
+  return { ...body, [key]: index < 0 ? turns : turns.slice(index) };
+}
 export function fixtureToolResults(body: any): { name: string; payload: any }[] {
   const names = new Map<string, string>();
   const results: { name: string; payload: any }[] = [];
-  const add = (id: string, value: string) => {
-    results.push({ name: names.get(id) ?? '', payload: JSON.parse(value) });
+  const add = (id: string, value: unknown) => {
+    const text = fixtureText(value);
+    let payload: unknown;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = { error: text };
+    }
+    results.push({ name: names.get(id) ?? '', payload });
   };
   for (const turn of body.input ?? body.messages ?? []) {
     if (turn.type === 'function_call') names.set(turn.call_id, turn.name);
@@ -28,6 +51,7 @@ export function fixtureToolResults(body: any): { name: string; payload: any }[] 
   return results;
 }
 function workspacePlan(body: any, prompt: string) {
+  body = fixtureCurrentTurn(body);
   if (/\[(?:create-workspace|repeat-write|write-then-fail|write-slow)\]/.test(prompt)) {
     const results = fixtureToolResults(body);
     const call = (name: string, args: object) => ({ name, arguments: JSON.stringify(args) });
@@ -265,23 +289,36 @@ export async function startMockServer(
       const anthropic = path.endsWith('/messages');
       const responses = path.endsWith('/responses');
       const content = responses ? body.input : body.messages;
-      const last =
-        content?.findLast((m: any) => m.role === 'user' && typeof m.content === 'string')
-          ?.content ?? '';
-      const prompt = typeof last === 'string' ? last : '';
+      const last = content?.findLast(
+        (message: any) => message.role === 'user' && fixtureText(message.content).trim(),
+      );
+      const prompt = fixtureText(last?.content);
+      const summarizing = prompt.includes('<conversation>') && prompt.includes('</conversation>');
+      const inputTokens = !summarizing && prompt.includes('[compact-after]') ? 120000 : 42;
       if (!['/v1/messages', '/v1/responses', '/v1/chat/completions'].includes(path)) {
         res.writeHead(404, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: { message: '模拟服务没有这个端点', type: 'not_found' } }));
         return;
       }
-      if (prompt.includes('[http401]')) {
+      if (prompt.includes('[http401]') || prompt.includes('[http401-echo-key]')) {
+        const receivedKey =
+          req.headers['x-api-key'] ?? req.headers.authorization?.replace(/^Bearer /, '');
         res.writeHead(401, { 'content-type': 'application/json' });
         res.end(
           JSON.stringify({
             type: 'error',
-            error: { message: '模拟：密钥无效', type: 'authentication_error' },
+            error: {
+              message:
+                '模拟：密钥无效' + (prompt.includes('[http401-echo-key]') ? ' ' + receivedKey : ''),
+              type: 'authentication_error',
+            },
           }),
         );
+        return;
+      }
+      if (prompt.includes('[http500]')) {
+        res.writeHead(500, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: { message: '模拟：服务暂时失败', type: 'server_error' } }));
         return;
       }
       if (prompt.includes('[tools-unsupported]') && body.tools?.length) {
@@ -289,7 +326,10 @@ export async function startMockServer(
         res.end(JSON.stringify({ error: { message: 'tools unsupported by fixture model' } }));
         return;
       }
-      if (prompt.includes('[write-then-fail]') && fixtureToolResults(body).length) {
+      if (
+        prompt.includes('[write-then-fail]') &&
+        fixtureToolResults(fixtureCurrentTurn(body)).length
+      ) {
         res.writeHead(500, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ error: { message: '模拟：记录保存后模型续接失败' } }));
         return;
@@ -315,11 +355,11 @@ export async function startMockServer(
         : responses
           ? 'OpenAI Responses'
           : 'OpenAI Chat Completions';
-      const plan = workspacePlan(body, prompt);
+      const plan = summarizing ? null : workspacePlan(body, prompt);
       if (plan && 'calls' in plan && plan.calls?.length) {
         const calls = plan.calls.map((call, index) => ({
           ...call,
-          id: 'call_fixture_' + fixtureToolResults(body).length + '_' + index,
+          id: 'call_fixture_' + requests.length + '_' + index,
         }));
         if (prompt.includes('[slow]')) await delay(80);
         if (anthropic)
@@ -523,20 +563,23 @@ export async function startMockServer(
         res.end();
         return;
       }
-      const answer =
-        plan && 'text' in plan
-          ? (plan.text ?? '')
-          : prompt === '请只回复“连接正常”。'
-            ? '连接正常'
-            : '这是一条来自 **本地模拟服务** 的回复，使用 ' +
-              kind +
-              ' 协议。\n\n' +
-              '你刚才问的是：\n> ' +
-              prompt.replaceAll('\n', '\n> ') +
-              '\n\n' +
-              '我们可以先把事情分成三个小步骤：\n\n' +
-              '1. 说清楚想解决的问题。\n2. 整理已有材料和截止时间。\n3. 从今天可以完成的一件事开始。\n\n' +
-              '模拟接口已完成请求和流式传输。连接真实模型后，这里会显示模型实际生成的内容。';
+      const answer = summarizing
+        ? '## Goal\n继续完成校园工作台中的请求。\n\n## Progress\n较早对话已整理为摘要。[fixture-compaction-summary]'
+        : /\[(?:history-block|compact-after)\]/.test(prompt)
+          ? '人工长对话已收到。'
+          : plan && 'text' in plan
+            ? (plan.text ?? '')
+            : prompt === '请只回复“连接正常”。'
+              ? '连接正常'
+              : '这是一条来自 **本地模拟服务** 的回复，使用 ' +
+                kind +
+                ' 协议。\n\n' +
+                '你刚才问的是：\n> ' +
+                prompt.replaceAll('\n', '\n> ') +
+                '\n\n' +
+                '我们可以先把事情分成三个小步骤：\n\n' +
+                '1. 说清楚想解决的问题。\n2. 整理已有材料和截止时间。\n3. 从今天可以完成的一件事开始。\n\n' +
+                '模拟接口已完成请求和流式传输。连接真实模型后，这里会显示模型实际生成的内容。';
       if (anthropic) {
         await event(
           {
@@ -549,7 +592,7 @@ export async function startMockServer(
               model: body.model,
               stop_reason: null,
               stop_sequence: null,
-              usage: { input_tokens: 42, output_tokens: 0 },
+              usage: { input_tokens: inputTokens, output_tokens: 0 },
             },
           },
           'message_start',
@@ -557,6 +600,32 @@ export async function startMockServer(
         await event(
           { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
           'content_block_start',
+        );
+      }
+      if (responses) {
+        await event(
+          {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'item_fixture',
+              role: 'assistant',
+              content: [],
+              status: 'in_progress',
+            },
+          },
+          'response.output_item.added',
+        );
+        await event(
+          {
+            type: 'response.content_part.added',
+            output_index: 0,
+            content_index: 0,
+            item_id: 'item_fixture',
+            part: { type: 'output_text', text: '', annotations: [] },
+          },
+          'response.content_part.added',
         );
       }
       const parts = Array.from(answer);
@@ -623,6 +692,20 @@ export async function startMockServer(
         );
         await event({ type: 'message_stop' }, 'message_stop');
       } else if (responses) {
+        await event(
+          {
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'item_fixture',
+              role: 'assistant',
+              status: 'completed',
+              content: [{ type: 'output_text', text: answer, annotations: [] }],
+            },
+          },
+          'response.output_item.done',
+        );
         const type = limited ? 'response.incomplete' : 'response.completed';
         await event(
           {
@@ -630,7 +713,12 @@ export async function startMockServer(
             response: {
               id: 'resp_fixture',
               status: limited ? 'incomplete' : 'completed',
-              usage: { input_tokens: 42, output_tokens: 80, total_tokens: 122 },
+              ...(limited ? { incomplete_details: { reason: 'max_output_tokens' } } : {}),
+              usage: {
+                input_tokens: inputTokens,
+                output_tokens: 80,
+                total_tokens: inputTokens + 80,
+              },
             },
           },
           type,
@@ -642,7 +730,11 @@ export async function startMockServer(
           created: 1,
           model: body.model,
           choices: [{ index: 0, delta: {}, finish_reason: limited ? 'length' : 'stop' }],
-          usage: { prompt_tokens: 42, completion_tokens: 80, total_tokens: 122 },
+          usage: {
+            prompt_tokens: inputTokens,
+            completion_tokens: 80,
+            total_tokens: inputTokens + 80,
+          },
         });
         res.write('data: [DONE]\n\n');
       }

@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest';
 import { Store, type SecretCodec } from '../src/main/store';
 import { ChatService } from '../src/main/chat';
-import { startMockServer } from '../scripts/mock-server';
+import { fixtureText, startMockServer } from '../scripts/mock-server';
 import type { AppState } from '../src/shared/types';
 
 const key = randomBytes(32);
@@ -138,7 +138,12 @@ it('新对话与已有对话均使用所选模型，独立记忆且不改服务�
   service.selectModel(id, provider.id, 'dola-mock-compatible');
   await service.send(id, '换模型后的第二轮');
   expect(mock.requests.at(-1)!.body.model).toBe('dola-mock-compatible');
-  expect(mock.requests.at(-1)!.body.input).toHaveLength(3);
+  const turns = mock.requests
+    .at(-1)!
+    .body.input.filter((message: any) => message.role === 'user' || message.role === 'assistant');
+  expect(turns.map((message: any) => message.role)).toEqual(['user', 'assistant', 'user']);
+  expect(fixtureText(turns[0].content)).toBe('第一轮');
+  expect(fixtureText(turns[2].content)).toBe('换模型后的第二轮');
   const reopened = new Store(directory, codec);
   expect(reopened.chat(id).model).toBe('dola-mock-compatible');
   expect(reopened.chat(id).messages[1].model).toBe('dola-mock-claude');
@@ -177,7 +182,13 @@ it('发送两轮消息时保留历史、模型归属与结果，重开后内容�
   expect(chat.messages).toHaveLength(4);
   expect(chat.messages[3].state).toBe('complete');
   expect(chat.messages[3].model).toBe('dola-mock-model');
-  expect(mock.requests.at(-1)!.body.input).toHaveLength(3);
+  const turns = mock.requests
+    .at(-1)!
+    .body.input.filter((message: any) => message.role === 'user' || message.role === 'assistant');
+  expect(turns.map((message: any) => message.role)).toEqual(['user', 'assistant', 'user']);
+  expect(fixtureText(turns[0].content)).toBe('第一轮');
+  expect(fixtureText(turns[1].content)).toBe(chat.messages[1].text);
+  expect(fixtureText(turns[2].content)).toBe('第二轮');
   expect(snapshots.some((s) => s.chats[0].messages.at(-1)?.state === 'streaming')).toBe(true);
 });
 

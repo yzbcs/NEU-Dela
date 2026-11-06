@@ -1,5 +1,25 @@
 # 更新记录
 
+## [0.5.0](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.0) — 2026-11-07
+
+AI 会话迁移到 Pi 1.5.0 原生 SDK，现有工作台与结果卡交互继续保留。
+
+### 本次更新
+
+- Pi `AgentSession` 负责模型请求、工具执行与后续回复循环，九个校园工具通过 `customTools` 接入原有 `WorkbenchReader`。
+- 使用 JSONL 保存新回合的完整消息、工具调用与结果，恢复对话时继续使用这些记录。
+- 启用自动上下文压缩，保留近期内容并整理较早对话，界面显示“整理对话上下文”的进度。
+- 旧聊天首次继续时导入已有消息与操作回执；删除聊天同时删除关联的 Pi 会话文件。
+- 保留真实保存结果卡、同一回复内等价创建去重、查看、编辑、撤销和停止生成后的已保存结果。
+- 继续支持 OpenAI Responses、Chat Completions 兼容接口和 Anthropic Messages；沿用系统加密凭据，不另存 Pi auth 文件。
+- 仅启用项目的校园工具，不加载 Pi 默认终端工具、外部 skills 或扩展资源。
+
+### 验证与当前范围
+
+152 项单元与本机 HTTP/邮件测试通过，生产构建通过；Mac 完整桌面流程 72 项检查与动作流程 11 项检查通过，均包含重启恢复。Windows 安装包与 10 项包内资源检查通过，尚未实机运行。协议验证使用人工数据与本机模拟服务，真实模型质量尚未评估。
+
+实现与预算说明见 [Pi 运行时](docs/pi-runtime.md)。
+
 ## [0.4.0](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.4.0) — 2026-11-07
 
 首个 GitHub 发布版本，提供 Apple Silicon Mac 与 Windows x64 安装包。

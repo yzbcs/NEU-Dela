@@ -1647,14 +1647,37 @@ export async function runDesktopSmoke(service: ChatService, window: BrowserWindo
     ),
     [0, 0, 0, 0],
   );
-  assert.equal(
-    await window.webContents.executeJavaScript(
-      'document.querySelectorAll(".dashboard-empty").length',
-    ),
-    3,
-    '无数据时显示真实空白引导',
+  assert.deepEqual(
+    await window.webContents.executeJavaScript(`(() => ({
+      focus: document.querySelector('.dashboard-focus')?.dataset.focusKind,
+      setupAction: document.querySelector('.dashboard-focus-action')?.textContent.trim(),
+      agenda: document.querySelector('.agenda-empty strong')?.textContent,
+      todo: document.querySelector('.dashboard-todos .dashboard-empty strong')?.textContent,
+      notes: document.querySelector('.dashboard-notes .dashboard-empty strong')?.textContent,
+      courseCount: document.querySelectorAll('[data-agenda-course]').length,
+      todoCount: document.querySelectorAll('[data-todo-id]').length,
+    }))()`),
+    {
+      focus: 'empty',
+      setupAction: '设置课表',
+      agenda: '从一张课表开始',
+      todo: '暂时没有未完成的事',
+      notes: '留一个地方，放下想法',
+      courseCount: 0,
+      todoCount: 0,
+    },
+    '无数据时显示课表设置、待办与笔记引导，不伪造安排',
   );
   await screenshot(window, 'dashboard-empty');
+  await window.webContents.executeJavaScript(
+    'document.querySelector(".dashboard-focus-action").click()',
+  );
+  await waitFor(
+    () =>
+      window.webContents.executeJavaScript('Boolean(document.querySelector(".calendar-scroll"))'),
+    '首页空白引导进入课表设置',
+  );
+  await clickButton(window, '工作台首页');
   await runWorkspaceSmoke(service, window);
   await runNotesSmoke(service, window);
   await runThemeSmoke(service, window);
@@ -1979,7 +2002,7 @@ export async function runDesktopSmoke(service: ChatService, window: BrowserWindo
           '不同课程及跨天同名课程配色',
           '切周及切换深浅模式保持课程色系',
           '深浅课表文字对比度',
-          '默认工作台首页及空白引导',
+          '默认工作台首页空白引导及课表设置入口',
           '首页课程待办笔记及邮箱汇总',
           '首页新建完成与便利贴状态联动',
           '首页快捷跳转及指定笔记继续编辑',

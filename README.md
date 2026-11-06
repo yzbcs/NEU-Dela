@@ -2,9 +2,9 @@
 
 **东北大学（沈阳）学生的本地工作台。** 把课表、待办、笔记、邮件和 AI 放在一起，从今天的安排开始。
 
-面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.4.0**。
+面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.5.0**。
 
-[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.4.0 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.4.0) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
+[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.5.0 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.0) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
 
 > 本项目由个人独立开发，非东北大学官方应用。
 
@@ -12,10 +12,10 @@
 
 | 平台                  | 安装包                                                                                                          |
 | --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| macOS · Apple Silicon | [NEU-Dela-0.4.0-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.4.0/NEU-Dela-0.4.0-arm64.dmg) |
-| Windows · x64         | [NEU-Dela.Setup.0.4.0.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.4.0/NEU-Dela.Setup.0.4.0.exe) |
+| macOS · Apple Silicon | [NEU-Dela-0.5.0-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.5.0/NEU-Dela-0.5.0-arm64.dmg) |
+| Windows · x64         | [NEU-Dela.Setup.0.5.0.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.5.0/NEU-Dela.Setup.0.5.0.exe) |
 
-安装包暂未签名，系统可能显示发布者提示。Mac 安装包已完成桌面检查；Windows 已打包并检查包内资源，尚未实机运行。
+安装包暂未签名，系统可能显示发布者提示。0.5.0 的 Mac 桌面验证已通过；Windows 已打包，尚未实机运行。
 
 ## 从接下来的一件事开始
 
@@ -68,7 +68,7 @@
 
 </details>
 
-以上截图均来自开发验证，使用人工数据。首页、课表与笔记截图来自 0.3.9，其布局在 0.4.0 沿用；AI 操作和启动截图来自 0.4.0。
+以上截图均来自开发验证，使用人工数据。首页、课表与笔记截图来自 0.3.9，AI 操作和启动截图来自 0.4.0，用于展示沿用的工作台界面。
 
 ## 开始使用
 
@@ -80,7 +80,9 @@
 
 ## 本地开发
 
-桌面端使用 Electron、React 和 TypeScript。AI 直接对接 OpenAI 与 Anthropic SDK，工具调用循环和工作台操作在项目内实现。
+桌面端使用 Electron、React 和 TypeScript。**0.5.0 将 AI 会话迁移到 Pi 1.5.0 原生 SDK**，由 Pi 管理工具调用循环、完整 JSONL 工具记录与自动上下文压缩，旧聊天在首次继续对话时导入。OpenAI Responses、Chat Completions 兼容接口与 Anthropic Messages 三种协议继续支持。
+
+校园工具继续负责字段校验、数据保存、真实回执、同一回复内的创建去重与撤销。详见 [Pi 运行时说明](docs/pi-runtime.md)。
 
 推荐 Node.js **24.22.1**，版本见 [.node-version](.node-version)。
 
@@ -103,6 +105,6 @@ npm test
 npm run smoke:actions
 ```
 
-0.4.0 已通过生产构建、123 项单元与本地 HTTP 测试；开发版和最终 Mac 包各通过 11 项桌面检查及重启恢复。测试使用人工数据与本机模拟模型，**真实模型的自然语言创建效果尚未验证**。通知检查覆盖定位处理，系统通知横幅送达尚未验证。更多命令与验证范围见[开发指南](docs/usage.md#开发与验证)。
+152 项测试与生产构建通过，Mac 的 72 项完整桌面检查及 11 项动作检查通过。测试使用人工数据和本机模拟接口。更多命令与验证状态见[开发指南](docs/usage.md#开发与验证)。
 
 更多文档：[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md) · [产品设计](docs/product-design.md)。

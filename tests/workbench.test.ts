@@ -364,7 +364,8 @@ it('关闭工作台访问时只进行普通对话，不读取和发送模块内�
   await service.send(id, '[workbench]', false);
   expect(mock.requests).toHaveLength(before + 1);
   expect(mock.requests.at(-1)!.body.tools).toBeUndefined();
-  expect(mock.requests.at(-1)!.body.instructions).toContain('未启用工作台访问');
+  expect(mock.requests.at(-1)!.body.input.find((item: any) => item.role === 'system').content)
+    .toContain('未启用工作台访问');
   expect(store.chat(id).workspaceAccess).toBe(false);
   expect(store.chat(id).messages.at(-1)?.activity).toBeUndefined();
 });

@@ -52,7 +52,7 @@ try {
   await launch('--smoke-actions-restore');
   const report = JSON.parse(readFileSync(join(output, 'report.json'), 'utf8'));
   Object.assign(report, {
-    version: '0.4.0',
+    version: JSON.parse(readFileSync(resolve('package.json'), 'utf8')).version,
     runtime: process.argv[2] ? 'packaged-mac' : 'development-electron',
     realApiRequests: 0,
     localHttpRequests: mock.requests.length,

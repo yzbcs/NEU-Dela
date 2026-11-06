@@ -149,12 +149,14 @@ describe.each(protocols)('%s 写入联动', (protocol) => {
 
   it('保存成功后模型续接失败，保留真实记录与成功回执', async () => {
     const id = createChat(protocol);
+    const before = mock.requests.length;
     await service.send(id, '请添加便利贴 [write-then-fail]');
     const reply = store.chat(id).messages.at(-1)!;
     expect(reply.state).toBe('error');
     expect(reply.error).toContain('记录保存后模型续接失败');
     expect(reply.creations).toHaveLength(1);
     expect(reply.activity?.[0].status).toBe('done');
+    expect(mock.requests.slice(before)).toHaveLength(2);
     const reopened = new Store(directory, codec);
     expect(reopened.chat(id).messages.at(-1)).toEqual(reply);
     expect(savedRecord(reopened, reply.creations![0])).toEqual(reply.creations![0].record);
@@ -228,6 +230,7 @@ describe.each(protocols)('%s 写入联动', (protocol) => {
     const id = createChat(protocol);
     await service.send(id, '请添加便利贴、课程和笔记 [create-workspace]');
     const reply = store.chat(id).messages.at(-1)!;
+    expect(reply.creations).toHaveLength(3);
     const originalReceipts = structuredClone(reply.creations!);
     const workspace = new WorkspaceService(
       store,

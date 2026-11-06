@@ -92,13 +92,7 @@ function registerIpc() {
   handle('chat-provider', (chatId: unknown, providerId: unknown, model: unknown) =>
     service.selectModel(uuid.parse(chatId), uuid.parse(providerId), modelId.parse(model)),
   );
-  handle('chat-remove', (id: unknown) => {
-    const chatId = uuid.parse(id);
-    if (service.busy(chatId)) throw new Error('请先停止生成再删除会话');
-    service.store.chats = service.store.chats.filter((c) => c.id !== chatId);
-    service.store.saveChats();
-    service.changed();
-  });
+  handle('chat-remove', (id: unknown) => service.removeChat(uuid.parse(id)));
   handle('chat-send', (id: unknown, text: unknown, workspaceAccess: unknown) =>
     service.send(
       uuid.parse(id),
