@@ -123,4 +123,6 @@ npm run smoke:actions
 
 0.7.0 的 87 项针对性测试通过；开发版完成 72 项完整桌面检查，最终 Mac 包完成 10 项设置检查，两类桌面流程均通过重启恢复。Mac DMG 与 Windows x64 安装包已生成；Windows 尚未实机运行，两端安装包未签名。验证使用人工资料与本机模拟服务。更多命令与验证状态见[开发指南](docs/usage.md#开发与验证)。
 
+后续版本通过 GitHub Actions 在 Mac 和 Windows 分别构建并运行桌面检查；推送版本标签后自动上传 Release，也可以手动试跑而不发布。操作步骤见[发布指南](docs/releasing.md)。
+
 更多文档：[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md) · [产品设计](docs/product-design.md)。

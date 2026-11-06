@@ -37,7 +37,7 @@ npm test
 npm run build
 ```
 
-界面或桌面流程修改按影响范围运行 `npm run smoke:design`、`npm run smoke:actions` 或 `npm run smoke`。这些命令会启动真实 Electron 窗口，使用隔离人工数据；不要求所有改动都重跑全部桌面流程。CI 执行依赖安装、单元/本机协议测试和生产构建，不代表 Windows 或 macOS 实机验证。
+界面或桌面流程修改按影响范围运行 `npm run smoke:design`、`npm run smoke:actions` 或 `npm run smoke`。这些命令会启动真实 Electron 窗口，使用隔离人工数据；不要求所有改动都重跑全部桌面流程。常规 CI 在 Linux 执行依赖安装、单元/本机协议测试和生产构建。Release 工作流在 Mac 和 Windows 分别打包，并运行设置、本地资料与重启恢复检查；发布和手动试跑的步骤见[发布指南](docs/releasing.md)。
 
 格式化只运行在本次修改的文件上，例如：
 

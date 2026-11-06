@@ -42,7 +42,9 @@ const reportPath = join(output, 'report.json');
 const report = JSON.parse(readFileSync(reportPath, 'utf8'));
 Object.assign(report, {
   version: JSON.parse(readFileSync(resolve('package.json'), 'utf8')).version,
-  runtime: process.argv[2] ? 'packaged-mac' : 'development-electron',
+  runtime: process.argv[2]
+    ? `packaged-${process.platform}-${process.arch}`
+    : 'development-electron',
   realApiRequests: 0,
 });
 writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
