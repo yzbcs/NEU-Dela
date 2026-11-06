@@ -36,3 +36,11 @@ gh workflow run release.yml --repo yzbcs/NEU-Dela --ref main
 这些临时产物保留七天。正式 Release 的下载附件不受这个期限影响。检查失败时先看对应步骤日志及桌面报告，修复原因后再运行；无需在本机重复生成两端安装包。
 
 常规 [CI](https://github.com/yzbcs/NEU-Dela/actions/workflows/ci.yml) 继续处理 main 提交与 Pull Request 的 Linux 测试和生产构建。Release 工作流独立检查要发布的具体提交，因此不会把另一条提交上的 CI 结果当作本次发版结果。
+
+## 已执行的验证
+
+2026-11-07，[手动试跑 42305547881](https://github.com/yzbcs/NEU-Dela/actions/runs/42305547881) 在提交 `b136292` 上通过。Mac arm64 与 Windows x64 各通过 163 项测试、生产构建、安装包生成，以及最终应用的 10 项设置检查、13 项本地资料检查和两组重启恢复。两个安装包及桌面报告均已上传到该次运行的 Artifacts。
+
+首次 Windows 试跑暴露了检查脚本把窗口外框尺寸当作页面尺寸的问题。脚本已统一使用 1024×700 的内容区域，保留正文至少 250px 的要求；实际 Mac 正文高度为 284px，Windows 为 290px。
+
+本次只验证构建与打包后运行，没有创建新版本或改动现有 0.7.1 Release；自动上传并公开 Release 的步骤将在下一次新版本标签发布时执行。个人电脑上的 Windows 安装、系统通知和日常使用仍需单独验证。
