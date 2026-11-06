@@ -11,7 +11,6 @@ import {
   ExternalLink,
   FileText,
   FolderOpen,
-  GraduationCap,
   HardDrive,
   Info,
   Mail,
@@ -39,7 +38,6 @@ import './settings.css';
 type SettingsSection =
   | 'overview'
   | 'appearance'
-  | 'identity'
   | 'models'
   | 'mail'
   | 'resources'
@@ -51,7 +49,6 @@ type SettingsSection =
 const labels: Record<SettingsSection, string> = {
   overview: '设置',
   appearance: '外观',
-  identity: '学习身份',
   models: '模型服务',
   mail: '邮箱账号',
   resources: '本地资料',
@@ -198,12 +195,6 @@ export function SettingsPage({
             <h2>通用</h2>
             <div className="settings-overview-list">
               {row('appearance', Palette, '外观', themeLabels[state.theme])}
-              {row(
-                'identity',
-                GraduationCap,
-                '学习身份',
-                w.degree === 'graduate' ? '研究生' : '本科生',
-              )}
             </div>
           </section>
           <section className="settings-overview-group">
@@ -286,41 +277,6 @@ export function SettingsPage({
             <p className="settings-hint">
               选择后立即生效。跟随系统时，外观会随系统切换；侧栏快捷切换与这里同步。
             </p>
-          </section>
-        </div>
-      )}
-      {page === 'identity' && (
-        <div className="settings-detail">
-          <section className="settings-card">
-            <h2>当前学习身份</h2>
-            <div className="settings-choice-row">
-              {(
-                [
-                  { value: 'undergrad', label: '本科生' },
-                  { value: 'graduate', label: '研究生' },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.value}
-                  data-degree-choice={item.value}
-                  className={'secondary-button' + (w.degree === item.value ? ' selected' : '')}
-                  aria-pressed={w.degree === item.value}
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      await workspace().setDegree(item.value);
-                    })
-                  }
-                >
-                  {item.label}
-                  {w.degree === item.value && <Check size={15} />}
-                </button>
-              ))}
-            </div>
-            <p className="settings-hint">用于显示对应的校园服务入口，已导入的课程保持不变。</p>
-            <button className="text-button" onClick={() => onNavigate('campus')}>
-              查看校园入口 <ChevronRight size={14} />
-            </button>
           </section>
         </div>
       )}

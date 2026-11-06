@@ -141,7 +141,7 @@ export async function runSettingsSmoke(
       assert.equal(service.store.provider(fixture.providerA).model, 'settings-draft-model');
       assert.equal(service.store.provider(fixture.providerB).name, '人工服务 B');
       assert.equal(service.store.theme, 'light');
-      assert.equal(service.store.workspace.degree, 'graduate');
+      assert.equal(service.store.workspace.degree, fixture.degree);
       assert.equal(service.store.workspace.timetable.term, '2026 秋季 · 设置验证');
       assert.equal(service.store.workspace.timetable.firstMonday, '2026-08-31');
       assert.deepEqual(service.store.workspace.timetable.courses, fixture.courses);
@@ -160,7 +160,7 @@ export async function runSettingsSmoke(
       assert.equal(after.modelRequests, before.modelRequests);
       assert.equal(after.mailConnections, before.mailConnections);
       record(
-        '重启后外观、身份、模型修改、邮箱配置与学期设置恢复，原课程和来源保留；进入设置仍不联网',
+        '重启后外观、模型修改、邮箱配置与学期设置恢复，原校园类型、课程和来源保留；进入设置仍不联网',
       );
       saveReport(true, { fixture, restartPassed: true });
       return;
@@ -202,12 +202,12 @@ export async function runSettingsSmoke(
       await window.webContents.executeJavaScript(
         `${query(view('overview'))}.querySelectorAll('[data-settings-target]').length`,
       ),
-      10,
+      9,
     );
     assert.equal(await exists(window, '.provider-form'), false);
     await settle(window);
     assert.deepEqual(await observations(), started);
-    record('侧栏设置先显示四组十个入口和当前状态，不自动打开模型表单或发起模型、邮箱连接');
+    record('侧栏设置先显示四组九个入口和当前状态，不自动打开模型表单或发起模型、邮箱连接');
 
     await open('appearance');
     assert(
@@ -237,18 +237,7 @@ export async function runSettingsSmoke(
     await open('appearance');
     await click(window, '[data-theme-choice="light"]');
     await waitForTheme('light');
-    await open('identity');
-    assert(
-      await exists(
-        window,
-        `[data-degree-choice=${JSON.stringify(service.store.workspace.degree)}][aria-pressed="true"]`,
-      ),
-    );
-    await click(window, '[data-degree-choice="graduate"]');
-    await waitFor(() => service.store.workspace.degree === 'graduate', '学习身份保存');
-    await open('identity');
-    assert(await exists(window, '[data-degree-choice="graduate"][aria-pressed="true"]'));
-    record('外观与学习身份显示真实当前值并保存，设置总览在深浅主题和 1024×700 窗口无横向溢出');
+    record('外观显示真实当前值并保存，设置总览在深浅主题和 1024×700 窗口无横向溢出');
 
     await open('models');
     assert.equal(await exists(window, '.provider-form'), false);
@@ -441,7 +430,13 @@ export async function runSettingsSmoke(
     );
     record('资料页明确显示“添加文件夹”和“添加文件”，原文件浏览行为保留');
     saveReport(true, {
-      fixture: { providerA: providerA.id, providerB: providerB.id, chatId, courses },
+      fixture: {
+        providerA: providerA.id,
+        providerB: providerB.id,
+        chatId,
+        courses,
+        degree: service.store.workspace.degree,
+      },
     });
   } catch (error) {
     saveReport(false, { error: error instanceof Error ? error.message : String(error) });

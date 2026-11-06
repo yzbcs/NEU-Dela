@@ -1,5 +1,11 @@
 # 更新记录
 
+## [0.7.1](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.1) — 2026-11-07
+
+移除设置中的“学习身份”入口与子页，设置调整为四组九项。校园入口页面原有的本科生、研究生切换与已保存选择继续保留。
+
+提供 Apple Silicon Mac 与 Windows x64 安装包，两端均未签名；Windows 尚未实机运行。
+
 ## [0.7.0](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.0) — 2026-11-07
 
 设置现在先展示完整总览，再进入具体配置。聊天可直接按问题使用工作台，不再显示连接状态和开关。

@@ -138,7 +138,6 @@
   margin-top: 15px;
   font-size: 12px;
 }
-.settings-choice-row,
 .settings-entry-actions {
   display: flex;
   align-items: center;
@@ -147,11 +146,6 @@
 }
 .settings-card > .settings-entry-actions {
   margin-top: 19px;
-}
-.settings-choice-row .selected {
-  background: var(--selected);
-  border-color: var(--border-strong);
-  color: var(--text-strong);
 }
 .settings-card > .text-button {
   margin-top: 18px;

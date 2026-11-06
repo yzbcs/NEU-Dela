@@ -2,9 +2,9 @@
 
 **东北大学（沈阳）学生的本地工作台。** 把课表、待办、笔记、邮件和 AI 放在一起，从今天的安排开始。
 
-面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.7.0**。
+面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.7.1**。
 
-[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.7.0 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.0) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
+[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.7.1 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.1) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
 
 > 本项目由个人独立开发，非东北大学官方应用。
 
@@ -12,8 +12,8 @@
 
 | 平台                  | 安装包                                                                                                          |
 | --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| macOS · Apple Silicon | [NEU-Dela-0.7.0-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.0/NEU-Dela-0.7.0-arm64.dmg) |
-| Windows · x64         | [NEU-Dela.Setup.0.7.0.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.0/NEU-Dela.Setup.0.7.0.exe) |
+| macOS · Apple Silicon | [NEU-Dela-0.7.1-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.1/NEU-Dela-0.7.1-arm64.dmg) |
+| Windows · x64         | [NEU-Dela.Setup.0.7.1.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.1/NEU-Dela.Setup.0.7.1.exe) |
 
 安装包未签名，系统可能显示发布者提示。Windows 版本已打包，实机运行待验证。
 
@@ -47,11 +47,11 @@
 
 文件保留在原目录，应用笔记保存在工作台中。点击“询问这份资料”会带着当前文件准备提问草稿，发送后 AI 才读取相关内容；新增的文件读取来源和本地文件搜索结果可直接回到对应文件。PDF 等格式可用系统应用查看。
 
-邮箱支持学校云邮箱、QQ、163 和自定义 IMAP/SMTP，可管理多账号、阅读邮件、下载附件、回复和发信。校园入口按本科生、研究生分组，便于打开常用服务。
+邮箱支持学校云邮箱、QQ、163 和自定义 IMAP/SMTP，可管理多账号、阅读邮件、下载附件、回复和发信。校园入口页面可切换本科生、研究生，便于打开对应的常用服务。
 
 ## 在设置中管理你的工作台
 
-设置先显示外观、学习身份、模型、邮箱、学期和本机数据的当前状态，按通用、模型与连接、学习与提醒、数据与帮助四组组织。进入模型或邮箱列表后再编辑，保存配置与测试连接分别操作。
+设置先显示外观、模型、邮箱、学期和本机数据的当前状态，按通用、模型与连接、学习与提醒、数据与帮助四组组织，共九个入口。进入模型或邮箱列表后再编辑，保存配置与测试连接分别操作。
 
 ![深色设置总览：外观、连接、学期与本机数据](assets/screenshots/settings-dark.png)
 
@@ -82,7 +82,7 @@
 
 </details>
 
-以上截图使用人工数据。设置截图来自 0.7.0 最终 Mac 应用；本地资料截图来自 0.6.0；首页、课表与笔记截图来自 0.3.9，AI 操作和启动截图来自 0.4.0，用于展示沿用的工作台界面。
+以上截图使用人工数据。设置截图来自 0.7.1 最终 Mac 应用；本地资料截图来自 0.6.0；首页、课表与笔记截图来自 0.3.9，AI 操作和启动截图来自 0.4.0，用于展示沿用的工作台界面。
 
 ## 开始使用
 
