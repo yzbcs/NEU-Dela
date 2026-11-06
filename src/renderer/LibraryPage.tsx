@@ -9,7 +9,6 @@ import {
   Download,
   FolderOpen,
   FileText,
-  ExternalLink,
   Search,
   StickyNote,
   Pin,
@@ -26,6 +25,7 @@ import { PageHeader, Modal, type PageProps } from './WorkspacePages';
 import { SelectMenu } from './components/SelectMenu';
 import { useNoteEditor } from './components/useNoteEditor';
 import { NoteMarkdown, formatNoteSelection } from './components/NoteMarkdown';
+import { LocalFilesPane } from './LocalFilesPane';
 const api = () => window.dola.workspace;
 function noteTime(value: string) {
   return new Date(value).toLocaleString('zh-CN', {
@@ -44,12 +44,18 @@ export function LibraryPage({
   focusNoteId,
   onAskNote,
   focusLibrary,
+  focusResource,
+  onAskFile,
 }: PageProps & {
   focusNoteId?: string;
   onAskNote: (note: Note) => void;
   focusLibrary?: { category: string; tab: 'notes' | 'files' };
+  focusResource?: { resourceId: string; path: string };
+  onAskFile: (file: { resourceId: string; path: string; title: string }) => void;
 }) {
-  const [tab, setTab] = useState('notes');
+  const [tab, setTab] = useState(() =>
+    localStorage.getItem('dola-library-tab') === 'files' ? 'files' : 'notes',
+  );
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [link, setLink] = useState(false);
@@ -59,6 +65,7 @@ export function LibraryPage({
   const [bookEditor, setBookEditor] = useState<{ name: string; previous?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [openedResource, setOpenedResource] = useState<{ resourceId: string; path: string }>();
   const bodyInput = useRef<HTMLTextAreaElement>(null);
   const editor = useNoteEditor(workspace.notes, onError);
   const { draft, status } = editor;
@@ -110,6 +117,9 @@ export function LibraryPage({
         b.updatedAt.localeCompare(a.updatedAt),
     );
   const selected = draft && filtered.some((note) => note.id === draft.id) ? draft : null;
+  useEffect(() => {
+    localStorage.setItem('dola-library-tab', tab);
+  }, [tab]);
   async function run(action: () => Promise<void>) {
     setBusy(true);
     try {
@@ -173,32 +183,36 @@ export function LibraryPage({
     setCategory(focusLibrary.category);
     setSearch('');
   }, [focusLibrary]);
-  const resources = workspace.resources.filter(
-    (item) =>
-      (!category || item.category === category) &&
-      [item.title, item.path, item.category]
-        .join(' ')
-        .toLowerCase()
-        .includes(search.trim().toLowerCase()),
-  );
+  useEffect(() => {
+    if (!focusResource) return;
+    setOpenedResource(undefined);
+    setTab('files');
+    setCategory('');
+    setSearch('');
+  }, [focusResource]);
+  async function addResources(kind: 'folder' | 'file') {
+    await run(async () => {
+      await editor.flush();
+      const previous = new Set(workspace.resources.map((resource) => resource.id));
+      await api().addResources(kind, category);
+      const next = await window.dola.load();
+      const added = next.workspace.resources.find((resource) => !previous.has(resource.id));
+      if (added) setOpenedResource({ resourceId: added.id, path: '' });
+      setTab('files');
+    });
+  }
   return (
-    <section className="work-page library-page">
+    <section className={'work-page library-page' + (tab === 'files' ? ' local-library-page' : '')}>
       <PageHeader
         eyebrow="A PLACE FOR YOUR IDEAS"
         title="资料与笔记"
-        subtitle="随手备忘、课程笔记、阅读记录，在这里慢慢积累。"
+        subtitle="阅读本地资料，记录想法，把学习中的内容连在一起。"
       >
-        <button
-          className="secondary-button"
-          onClick={() => api().addResources('folder', category).catch(onError)}
-        >
+        <button className="secondary-button" onClick={() => void addResources('folder')}>
           <FolderOpen size={15} />
           关联文件夹
         </button>
-        <button
-          className="secondary-button"
-          onClick={() => api().addResources('file', category).catch(onError)}
-        >
+        <button className="secondary-button" onClick={() => void addResources('file')}>
           <Upload size={15} />
           关联文件
         </button>
@@ -213,7 +227,7 @@ export function LibraryPage({
             备忘录 {workspace.notes.length}
           </button>
           <button className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>
-            资料 {workspace.resources.length}
+            本地资料 {workspace.resources.length}
           </button>
         </div>
         <label className="work-search">
@@ -221,7 +235,9 @@ export function LibraryPage({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索标题、内容或分类"
+            placeholder={
+              tab === 'notes' ? '搜索笔记标题、内容或分类' : '筛选关联资料名称、路径或分类'
+            }
           />
         </label>
         {tab === 'files' && (
@@ -549,46 +565,14 @@ export function LibraryPage({
             </button>
             <span className="muted">文件和文件夹保留在原位置。</span>
           </div>
-          <div className="resource-grid">
-            {resources.map((item) => (
-              <article key={item.id} className="resource-card">
-                <button
-                  className="resource-open"
-                  onClick={() => api().openResource(item.id).catch(onError)}
-                >
-                  {item.kind === 'folder' ? (
-                    <FolderOpen size={25} />
-                  ) : item.kind === 'link' ? (
-                    <ExternalLink size={25} />
-                  ) : (
-                    <FileText size={25} />
-                  )}
-                  <strong>{item.title}</strong>
-                  <small>{item.category || '未分类'}</small>
-                  <span>{item.path}</span>
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={'移除资料 ' + item.title}
-                  onClick={() => api().removeResource(item.id).catch(onError)}
-                >
-                  <X size={14} />
-                </button>
-              </article>
-            ))}
-            {!resources.length && (
-              <div className="work-empty">
-                <FolderOpen size={30} />
-                <p>
-                  {search.trim()
-                    ? '没有找到匹配的资料，请换个关键词。'
-                    : category
-                      ? `“${category}”还没有资料。关联文件、文件夹或添加链接后，会保存在这个分类。`
-                      : '关联常用文件夹、论文或课程资料，之后从这里打开。'}
-                </p>
-              </div>
-            )}
-          </div>
+          <LocalFilesPane
+            resources={workspace.resources}
+            category={category}
+            search={search}
+            onError={onError}
+            onAskFile={onAskFile}
+            focusResource={openedResource ?? focusResource}
+          />
         </>
       )}
       {bookEditor && (

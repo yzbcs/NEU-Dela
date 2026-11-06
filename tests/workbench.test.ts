@@ -172,6 +172,28 @@ it('读取关联文件夹及其子目录里的真实文件，不读取未关联�
     reader.execute('read_file', JSON.stringify({ resourceId: 'unsupported' }), signal()),
   ).rejects.toThrow('暂不支持');
 });
+it('单独关联的 Markdown 跳转同目录文件后，AI 读取同一原文件并保留精确来源路径', async () => {
+  const root = join(directory, 'project');
+  store.workspace.resources.push({
+    id: 'markdown-fixture',
+    title: 'study.md',
+    kind: 'file',
+    path: join(root, 'study.md'),
+    category: '',
+    addedAt: new Date().toISOString(),
+  });
+  const result = await reader.execute(
+    'read_file',
+    JSON.stringify({
+      resourceId: 'markdown-fixture',
+      path: 'subdir/analysis.py',
+    }),
+    signal(),
+  );
+  expect((result.data as any).text).toContain('fixture analysis');
+  expect(result.source).toMatchObject({ id: 'markdown-fixture', path: 'subdir/analysis.py' });
+});
+
 it('待办按完成状态及北京时间日期筛选，课程返回当天实际上课时间', async () => {
   const original = store.workspace.todos[0];
   store.workspace.todos = [
@@ -364,8 +386,9 @@ it('关闭工作台访问时只进行普通对话，不读取和发送模块内�
   await service.send(id, '[workbench]', false);
   expect(mock.requests).toHaveLength(before + 1);
   expect(mock.requests.at(-1)!.body.tools).toBeUndefined();
-  expect(mock.requests.at(-1)!.body.input.find((item: any) => item.role === 'system').content)
-    .toContain('未启用工作台访问');
+  expect(
+    mock.requests.at(-1)!.body.input.find((item: any) => item.role === 'system').content,
+  ).toContain('未启用工作台访问');
   expect(store.chat(id).workspaceAccess).toBe(false);
   expect(store.chat(id).messages.at(-1)?.activity).toBeUndefined();
 });

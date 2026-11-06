@@ -713,6 +713,7 @@ export function App() {
   const [focusCourseId, setFocusCourseId] = useState<string>();
   const [focusCourseDate, setFocusCourseDate] = useState<string>();
   const [focusLibrary, setFocusLibrary] = useState<{ category: string; tab: 'notes' | 'files' }>();
+  const [focusResource, setFocusResource] = useState<{ resourceId: string; path: string }>();
   const [focusChatMessageId, setFocusChatMessageId] = useState<string>();
   const [focusRequest, setFocusRequest] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -749,12 +750,27 @@ export function App() {
     setFocusCourseId(undefined);
     setFocusCourseDate(undefined);
     setFocusLibrary(undefined);
+    setFocusResource(undefined);
     setFocusChatMessageId(undefined);
     setPage(next);
   }
   function openNote(id: string) {
     navigate('library');
     setFocusNoteId(id);
+    setFocusRequest((value) => value + 1);
+  }
+  function openResource(id: string, path = '') {
+    const resource = state.workspace.resources.find((item) => item.id === id);
+    if (!resource) {
+      fail(new Error('这项资料已移除关联，请到资料与笔记重新关联。'));
+      return;
+    }
+    if (resource.kind === 'link') {
+      void window.dola.workspace.openResource(id).catch(fail);
+      return;
+    }
+    navigate('library');
+    setFocusResource({ resourceId: id, path });
     setFocusRequest((value) => value + 1);
   }
   function openCourse(id: string, date?: string) {
@@ -817,7 +833,7 @@ export function App() {
       setFocusTodoId(result.id);
       setFocusRequest((value) => value + 1);
     } else if (result.kind === 'resource') {
-      void window.dola.workspace.openResource(result.id).catch(fail);
+      openResource(result.id);
     } else {
       navigate('chat');
       setActiveId(result.id);
@@ -970,8 +986,7 @@ export function App() {
         return;
       }
       openNote(source.id);
-    } else if (source.kind === 'resource' && source.id)
-      void window.dola.workspace.openResource(source.id).catch(fail);
+    } else if (source.kind === 'resource' && source.id) openResource(source.id, source.path);
     else if (source.kind === 'mail') {
       navigate('mail');
       setFocusMailId(source.id);
@@ -1209,6 +1224,25 @@ export function App() {
               navigate={navigate}
               focusNoteId={focusNoteId}
               focusLibrary={focusLibrary}
+              focusResource={focusResource}
+              onAskFile={(file) => {
+                const resource = state.workspace.resources.find(
+                  (item) => item.id === file.resourceId,
+                );
+                if (!resource) return;
+                if (provider) setNewSelection({ providerId: provider.id, model });
+                setActiveId(null);
+                setAccessDraft({ chatId: null, enabled: true });
+                setPrompt((text) =>
+                  [
+                    text.trim(),
+                    `请读取本地资料《${file.title}》：关联项“${resource.title}”，位置为“${resource.path}”${file.path ? `，相对路径为“${file.path}”` : ''}。请先读取原文件，再整理要点并注明来源。`,
+                  ]
+                    .filter(Boolean)
+                    .join('\n\n'),
+                );
+                navigate('chat');
+              }}
               onAskNote={(note) => {
                 if (provider) setNewSelection({ providerId: provider.id, model });
                 setActiveId(null);

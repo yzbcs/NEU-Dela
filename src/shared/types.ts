@@ -26,6 +26,7 @@ export interface ModelOption {
 export interface WorkspaceSource {
   kind: 'timetable' | 'todos' | 'note' | 'resource' | 'mail' | 'campus' | 'overview';
   id?: string;
+  path?: string;
   label: string;
   citation: number;
 }

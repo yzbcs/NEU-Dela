@@ -50,6 +50,26 @@ export interface Resource {
   category: string;
   addedAt: string;
 }
+export interface LocalDirectory {
+  name: string;
+  path: string;
+  entries: { name: string; path: string; kind: 'folder' | 'file' }[];
+  total: number;
+  nextOffset: number | null;
+}
+export interface LocalFilePreview {
+  name: string;
+  path: string;
+  fullPath: string;
+  kind: 'markdown' | 'text' | 'unsupported';
+  body: string;
+  size: number;
+  modifiedAt: string;
+}
+export type LocalResourceLink =
+  | { kind: 'file'; path: string; anchor?: string }
+  | { kind: 'external'; url: string }
+  | { kind: 'anchor'; anchor: string };
 export interface Note {
   id: string;
   title: string;
@@ -144,6 +164,11 @@ export interface WorkspaceApi {
   addLink(title: string, url: string, category: string): Promise<void>;
   removeResource(id: string): Promise<void>;
   openResource(id: string): Promise<void>;
+  listResourceDirectory(id: string, path: string, offset?: number): Promise<LocalDirectory>;
+  readResourceFile(id: string, path: string): Promise<LocalFilePreview>;
+  readResourceImage(id: string, path: string, source: string): Promise<string>;
+  resolveResourceLink(id: string, path: string, href: string): Promise<LocalResourceLink>;
+  openResourcePath(id: string, path: string, reveal?: boolean): Promise<void>;
   openLocal(path: string): Promise<void>;
   openWebsite(url: string): Promise<void>;
   setDegree(degree: Workspace['degree']): Promise<void>;

@@ -250,10 +250,19 @@ app
       process.argv.includes('--smoke-restore') ||
       process.argv.includes('--smoke-design') ||
       process.argv.includes('--smoke-actions') ||
-      process.argv.includes('--smoke-actions-restore')
+      process.argv.includes('--smoke-actions-restore') ||
+      process.argv.includes('--smoke-local-files') ||
+      process.argv.includes('--smoke-local-files-restore')
     ) {
       try {
-        if (process.argv.some((arg) => arg.startsWith('--smoke-actions'))) {
+        if (process.argv.some((arg) => arg.startsWith('--smoke-local-files'))) {
+          const { runLocalFilesSmoke } = await import('./local-files-smoke');
+          await runLocalFilesSmoke(
+            service,
+            window,
+            process.argv.includes('--smoke-local-files-restore'),
+          );
+        } else if (process.argv.some((arg) => arg.startsWith('--smoke-actions'))) {
           const { runActionsSmoke } = await import('./actions-smoke');
           await runActionsSmoke(
             service,
@@ -273,11 +282,13 @@ app
       } catch (error) {
         const directory = join(
           process.cwd(),
-          process.argv.some((arg) => arg.startsWith('--smoke-actions'))
-            ? 'assets/output/actions-validation'
-            : process.argv.includes('--smoke-design')
-              ? 'assets/output/design-validation'
-              : 'assets/output/ai-validation',
+          process.argv.some((arg) => arg.startsWith('--smoke-local-files'))
+            ? 'assets/output/local-files-validation'
+            : process.argv.some((arg) => arg.startsWith('--smoke-actions'))
+              ? 'assets/output/actions-validation'
+              : process.argv.includes('--smoke-design')
+                ? 'assets/output/design-validation'
+                : 'assets/output/ai-validation',
         );
         mkdirSync(directory, { recursive: true });
         writeFileSync(

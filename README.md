@@ -2,9 +2,9 @@
 
 **东北大学（沈阳）学生的本地工作台。** 把课表、待办、笔记、邮件和 AI 放在一起，从今天的安排开始。
 
-面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.5.1**。
+面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.6.0**。
 
-[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.5.1 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.1) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
+[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.6.0 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.6.0) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
 
 > 本项目由个人独立开发，非东北大学官方应用。
 
@@ -12,10 +12,10 @@
 
 | 平台                  | 安装包                                                                                                          |
 | --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| macOS · Apple Silicon | [NEU-Dela-0.5.1-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.5.1/NEU-Dela-0.5.1-arm64.dmg) |
-| Windows · x64         | [NEU-Dela.Setup.0.5.1.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.5.1/NEU-Dela.Setup.0.5.1.exe) |
+| macOS · Apple Silicon | [NEU-Dela-0.6.0-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.6.0/NEU-Dela-0.6.0-arm64.dmg) |
+| Windows · x64         | [NEU-Dela.Setup.0.6.0.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.6.0/NEU-Dela.Setup.0.6.0.exe) |
 
-安装包暂未签名，系统可能显示发布者提示。0.5.1 的生产构建与 Mac 侧栏目视检查已通过；Windows 尚未实机运行。
+安装包暂未签名，系统可能显示发布者提示。0.6.0 已通过 160 项测试和最终 Mac 包的 13 项本地资料检查；Windows 包内资源检查通过，实机运行待验证。
 
 ## 从接下来的一件事开始
 
@@ -40,6 +40,12 @@
 用笔记本整理课程、阅读记录和随手备忘。支持置顶、正文搜索、模板、自动保存、导出和可勾选清单，也可以关联本机文件、文件夹与链接。
 
 ![深色模式下的笔记本、笔记列表与正文编辑](assets/screenshots/notes-dark.png)
+
+在“本地资料”中关联课程或项目文件夹，按需展开目录，点击 Markdown 就能阅读正文、表格、代码块和本地图片。支持预览／源码切换、文内查找、相对文档链接和刷新，也能用系统应用打开文件。
+
+![本地资料：文件夹目录与 Markdown 阅读](assets/screenshots/local-files-light.png)
+
+文件保留在原目录，应用笔记保存在工作台中。点击“询问这份资料”会带着当前文件准备提问草稿，发送后 AI 才读取相关内容；新增的文件读取来源和关联文件搜索结果可直接回到对应文件。PDF 等格式可用系统应用查看。
 
 邮箱支持学校云邮箱、QQ、163 和自定义 IMAP/SMTP，可管理多账号、阅读邮件、下载附件、回复和发信。校园入口按本科生、研究生分组，便于打开常用服务。
 
@@ -68,12 +74,12 @@
 
 </details>
 
-以上截图均来自开发验证，使用人工数据。首页、课表与笔记截图来自 0.3.9，AI 操作和启动截图来自 0.4.0，用于展示沿用的工作台界面。
+以上截图使用人工数据。本地资料截图来自 0.6.0；首页、课表与笔记截图来自 0.3.9，AI 操作和启动截图来自 0.4.0，用于展示沿用的工作台界面。
 
 ## 开始使用
 
 1. 安装并打开应用，在“我的课表”导入或手动添加课程。
-2. 在首页新建待办，在“资料与笔记”整理笔记与关联文件。
+2. 在首页新建待办，在“资料与笔记”记录笔记、关联文件夹并阅读本地资料。
 3. 按需在“设置”连接模型服务，在邮箱页配置邮箱账号。
 
 关闭窗口后应用可在托盘继续运行；**退出应用或电脑关机后，提醒不会运行**。AI 并非使用课表、待办和笔记的前提。详细步骤见[使用指南](docs/usage.md)。
@@ -102,9 +108,10 @@ npm run demo
 ```sh
 npm run build
 npm test
+npm run smoke:files
 npm run smoke:actions
 ```
 
-0.5.1 仅调整侧栏标题与间距，已通过生产构建和本机 Mac 侧栏目视检查。完整工作流的验证记录见[更新记录](CHANGELOG.md)。更多命令与验证状态见[开发指南](docs/usage.md#开发与验证)。
+0.6.0 的 160 项测试与生产构建通过；开发版完成 12 项本地资料检查和 72 项完整桌面检查，最终 Mac 包也通过 13 项本地资料检查，均包含重启恢复。Windows 安装包已生成，10 项包内资源检查通过，尚未实机运行。更多命令与验证状态见[开发指南](docs/usage.md#开发与验证)。
 
 更多文档：[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md) · [产品设计](docs/product-design.md)。

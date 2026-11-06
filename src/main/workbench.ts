@@ -1,5 +1,5 @@
 import { readFile, readdir, stat } from 'node:fs/promises';
-import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 import { createRequire } from 'node:module';
 import { z } from 'zod';
 import {
@@ -16,6 +16,7 @@ import type { Store } from './store';
 import { MailService } from './mail';
 import { addCoursesInput, todoInput, WorkspaceService } from './workspace';
 import { courseConflicts } from '../shared/agenda';
+import { resolveResourcePath, textExtensions } from './local-files';
 
 const chunk = {
   offset: z.number().int().min(0).default(0),
@@ -152,12 +153,6 @@ function textChunk(text: string, offset: number, length: number) {
     nextOffset: offset + length < text.length ? offset + length : null,
   };
 }
-const textExtensions = new Set(
-  '.txt .md .markdown .csv .tsv .json .jsonl .yaml .yml .toml .ini .log .py .js .mjs .cjs .ts .tsx .jsx .html .css .scss .sql .sh .zsh .tex .bib .rst .ipynb .c .cpp .h .hpp .java .go .rs .r .xml .svg'.split(
-    ' ',
-  ),
-);
-
 export class WorkbenchReader {
   private mail: MailService;
   constructor(
@@ -216,19 +211,7 @@ export class WorkbenchReader {
     );
   }
   private resourcePath(id: string, path: string) {
-    const resource = this.store.workspace.resources.find((r) => r.id === id);
-    if (!resource) throw new Error('资料不存在，请重新查询资料目录。');
-    if (resource.kind === 'link')
-      throw new Error('这项资料是网页链接，当前只能读取已关联的本机文件。');
-    if (resource.kind === 'file') {
-      if (path) throw new Error('这是一项单独文件，请留空相对路径。');
-      return { resource, path: resource.path };
-    }
-    const target = resolve(resource.path, path || '.');
-    const child = relative(resolve(resource.path), target);
-    if (isAbsolute(child) || child === '..' || child.startsWith('..' + sep))
-      throw new Error('只能读取已关联文件夹中的相对路径。');
-    return { resource, path: target };
+    return resolveResourcePath(this.store.workspace.resources, id, path);
   }
   async execute(name: string, raw: string, signal: AbortSignal): Promise<WorkbenchResult> {
     signal.throwIfAborted();
@@ -521,7 +504,7 @@ export class WorkbenchReader {
       signal.throwIfAborted();
       return {
         data: { name: basename(target.path), ...data },
-        source: { kind: 'resource', id: resourceId, label: path || target.resource.title },
+        source: { kind: 'resource', id: resourceId, path, label: path || target.resource.title },
         detail:
           '已读取 ' + basename(target.path) + (extension === '.pdf' ? ` · 第 ${page} 页` : ''),
       };

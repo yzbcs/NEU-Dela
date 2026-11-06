@@ -743,10 +743,10 @@ async function runLearningWorkflowSmoke(service: ChatService, window: BrowserWin
     await openResult('课程搜索独有词', 'course', course.id);
     await waitFor(() => present('.course-learning'), '再次打开课程学习入口');
     await clickButton(window, '课程资料 1');
-    await waitFor(() => present('.resource-grid'), '课程入口打开资料分类');
+    await waitFor(() => present('.local-files-pane'), '课程入口打开资料分类');
     assert.deepEqual(
       await window.webContents.executeJavaScript(
-        'Array.from(document.querySelectorAll(".resource-card strong")).map(node=>node.textContent)',
+        'Array.from(document.querySelectorAll(".local-tree > .local-tree-row .local-tree-name span, .local-tree > .local-tree-item > .local-tree-row .local-tree-name span")).map(node=>node.textContent)',
       ),
       ['本课程参考资料'],
     );
@@ -798,6 +798,7 @@ async function runLearningWorkflowSmoke(service: ChatService, window: BrowserWin
 async function runAssistantSmoke(service: ChatService, window: BrowserWindow) {
   console.log('assistant smoke: real workspace tools');
   await clickButton(window, '资料与笔记');
+  await clickVisibleButton(window, '.library-toolbar .segment-tabs button:first-child');
   await waitFor(
     () =>
       window.webContents.executeJavaScript(
@@ -901,6 +902,7 @@ async function runAssistantSmoke(service: ChatService, window: BrowserWindow) {
 async function runNotesSmoke(service: ChatService, window: BrowserWindow) {
   console.log('notes smoke: notebooks, pinning and checklist');
   await clickButton(window, '资料与笔记');
+  await clickVisibleButton(window, '.library-toolbar .segment-tabs button:first-child');
   const original = service.store.workspace.notes[0];
   await clickButton(window, '新建笔记本');
   await fillFields(window, { 'input[name=notebookName]': '课程与备忘' });

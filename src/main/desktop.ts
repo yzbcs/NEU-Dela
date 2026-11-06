@@ -9,6 +9,7 @@ import { WorkspaceService } from './workspace';
 import { MailService } from './mail';
 import { readTimetable, timetableIcs } from './timetable';
 import { openGraduateImport } from './graduate-window';
+import { LocalFiles } from './local-files';
 
 export function desktopApi(
   store: Store,
@@ -34,6 +35,7 @@ export function desktopApi(
     ),
   );
   const mail = new MailService(store, changed);
+  const localFiles = new LocalFiles(store);
   const id = (value: string) => z.string().uuid().parse(value);
   const url = (value: string) => {
     const parsed = new URL(value);
@@ -160,6 +162,30 @@ export function desktopApi(
     async openLocal(path) {
       const error = await shell.openPath(z.string().min(1).parse(path));
       if (error) throw new Error(error);
+    },
+    async listResourceDirectory(value, path, offset = 0) {
+      return localFiles.list(
+        id(value),
+        z.string().parse(path),
+        z.number().int().nonnegative().parse(offset),
+      );
+    },
+    async readResourceFile(value, path) {
+      return localFiles.read(id(value), z.string().parse(path));
+    },
+    async readResourceImage(value, path, source) {
+      return localFiles.image(id(value), z.string().parse(path), z.string().parse(source));
+    },
+    async resolveResourceLink(value, path, href) {
+      return localFiles.link(id(value), z.string().parse(path), z.string().parse(href));
+    },
+    async openResourcePath(value, path, reveal = false) {
+      const target = await localFiles.getPath(id(value), z.string().parse(path));
+      if (reveal) shell.showItemInFolder(target);
+      else {
+        const error = await shell.openPath(target);
+        if (error) throw new Error(error);
+      }
     },
     async openWebsite(value) {
       await shell.openExternal(url(value));
