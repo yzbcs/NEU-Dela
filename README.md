@@ -2,7 +2,7 @@
 
 **东北大学（沈阳）学生的本地工作台。** 把课表、待办、笔记、邮件和 AI 放在一起，从今天的安排开始。
 
-面向本科生与研究生，使用 Electron、React 和 TypeScript 构建，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.4.0**。
+面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.4.0**。
 
 [下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.4.0 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.4.0) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
 
@@ -80,6 +80,8 @@
 
 ## 本地开发
 
+桌面端使用 Electron、React 和 TypeScript。AI 直接对接 OpenAI 与 Anthropic SDK，工具调用循环和工作台操作在项目内实现。
+
 推荐 Node.js **24.22.1**，版本见 [.node-version](.node-version)。
 
 ```sh
@@ -103,8 +105,4 @@ npm run smoke:actions
 
 0.4.0 已通过生产构建、123 项单元与本地 HTTP 测试；开发版和最终 Mac 包各通过 11 项桌面检查及重启恢复。测试使用人工数据与本机模拟模型，**真实模型的自然语言创建效果尚未验证**。通知检查覆盖定位处理，系统通知横幅送达尚未验证。更多命令与验证范围见[开发指南](docs/usage.md#开发与验证)。
 
-更多文档：[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md) · [产品设计](docs/product-design.md) · [校园助手交互参考与取舍](docs/campus-assistant-references.md)。
-
-## 交互参考
-
-本项目参考了 [Dela（上海交通大学）](https://github.com/Chang-Yo/Dela) 和 [JLU-Dela（吉林大学）](https://github.com/goya4140/JLU-Dela) 的校园助手交互思路，并围绕东北大学场景独立实现。没有复制其源码或素材，也不是上述项目的 fork。
+更多文档：[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md) · [产品设计](docs/product-design.md)。
