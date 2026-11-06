@@ -1,7 +1,7 @@
 {
   "name": "neu-dola",
   "productName": "NEU-Dela",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "private": true,
   "description": "东北大学学生的本地校园个人助手：课表、待办、笔记、邮件与 AI 工作台",
   "type": "module",

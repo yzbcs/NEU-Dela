@@ -1,5 +1,9 @@
 # 更新记录
 
+## 0.7.2 — 2026-11-07
+
+新增 DeepSeek、MiniMax、GLM 快捷模型服务配置，保留自定义 OpenAI 和 Anthropic。已有服务不受影响。
+
 ## [0.7.1](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.1) — 2026-11-07
 
 移除设置中的“学习身份”入口与子页，设置调整为四组九项。校园入口页面原有的本科生、研究生切换与已保存选择继续保留。

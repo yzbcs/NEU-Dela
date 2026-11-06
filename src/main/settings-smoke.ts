@@ -242,6 +242,32 @@ export async function runSettingsSmoke(
 
     await open('models');
     assert.equal(await exists(window, '.provider-form'), false);
+    const beforePresets = await observations();
+    for (const [name, url, model] of [
+      ['DeepSeek', 'https://api.deepseek.com', 'deepseek-flash'],
+      ['MiniMax', 'https://api.minimax.cn/anthropic', 'MiniMax-M3.1-Flash'],
+      ['GLM', 'https://open.bigmodel.cn/api/paas/v4', 'glm-5.3-flash'],
+    ]) {
+      await click(window, `[data-provider-add="${name}"]`);
+      await waitFor(() => exists(window, view('model-editor')), name + ' 快捷配置');
+      for (const [field, expected] of [
+        ['providerName', name],
+        ['baseUrl', url],
+        ['model', model],
+        ['apiKey', ''],
+      ]) {
+        assert.equal(
+          await window.webContents.executeJavaScript(
+            `document.querySelector('.provider-form input[name="${field}"]').value`,
+          ),
+          expected,
+        );
+      }
+      await button(window, '取消');
+    }
+    assert.equal(service.store.providers.length, 2);
+    assert.equal((await observations()).modelRequests, beforePresets.modelRequests);
+    record('三个供应商快捷入口预填官方配置；取消不保存、不请求模型、不复用其他服务的密钥');
     const providerCard = (id: string) => `[data-provider-id=${JSON.stringify(id)}]`;
     await button(window, '编辑', providerCard(providerA.id));
     await waitFor(() => exists(window, view('model-editor')), '显式编辑模型');

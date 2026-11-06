@@ -7,6 +7,7 @@ import { SelectMenu } from './SelectMenu';
 export function ProviderSettingsForm({
   provider,
   kind,
+  preset,
   busy,
   setBusy,
   onSaved,
@@ -15,6 +16,7 @@ export function ProviderSettingsForm({
   onNotice,
 }: {
   provider?: Provider;
+  preset?: ProviderInput;
   kind: 'openai' | 'anthropic';
   busy: boolean;
   setBusy: (busy: boolean) => void;
@@ -24,7 +26,7 @@ export function ProviderSettingsForm({
   onNotice: (notice: string) => void;
 }) {
   const [draft, setDraft] = useState<ProviderInput>(
-    provider ? { ...provider, apiKey: '' } : { ...providerDefaults[kind], apiKey: '' },
+    provider ? { ...provider, apiKey: '' } : { ...(preset || providerDefaults[kind]), apiKey: '' },
   );
   const [showKey, setShowKey] = useState(false);
   const [models, setModels] = useState<ModelOption[]>(provider?.models || []);

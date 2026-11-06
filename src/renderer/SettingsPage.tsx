@@ -25,7 +25,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import type { AppState, Theme } from '../shared/types';
+import type { AppState, Theme, ProviderInput } from '../shared/types';
 import { protocolLabels } from '../shared/types';
 import { periodTimes, type Page } from '../shared/workspace';
 import { Modal } from './WorkspacePages';
@@ -59,6 +59,26 @@ const labels: Record<SettingsSection, string> = {
   about: '关于 NEU-Dela',
 };
 const themeLabels: Record<Theme, string> = { light: '浅色', dark: '深色', system: '跟随系统' };
+const providerPresets: ProviderInput[] = [
+  {
+    name: 'DeepSeek',
+    protocol: 'openai-chat',
+    baseUrl: 'https://api.deepseek.com',
+    model: 'deepseek-flash',
+  },
+  {
+    name: 'MiniMax',
+    protocol: 'anthropic',
+    baseUrl: 'https://api.minimax.cn/anthropic',
+    model: 'MiniMax-M3.1-Flash',
+  },
+  {
+    name: 'GLM',
+    protocol: 'openai-chat',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    model: 'glm-5.3-flash',
+  },
+];
 const workspace = () => window.dola.workspace;
 
 export function SettingsPage({
@@ -84,6 +104,7 @@ export function SettingsPage({
   const [editingProvider, setEditingProvider] = useState<{
     id?: string;
     kind: 'openai' | 'anthropic';
+    preset?: ProviderInput;
   } | null>(null);
   const [editingMail, setEditingMail] = useState<string | null>(null);
   const [editingTerm, setEditingTerm] = useState(false);
@@ -283,15 +304,37 @@ export function SettingsPage({
       {page === 'models' &&
         (editingProvider ? (
           <ProviderSettingsForm
-            key={editingProvider.id || editingProvider.kind}
+            key={editingProvider.id || editingProvider.preset?.name || editingProvider.kind}
             provider={state.providers.find((item) => item.id === editingProvider.id)}
             kind={editingProvider.kind}
+            preset={editingProvider.preset}
             {...editorProps}
             onSaved={() => setEditingProvider(null)}
             onCancel={() => setEditingProvider(null)}
           />
         ) : (
           <div className="settings-detail settings-models">
+            <div className="settings-entry-actions">
+              {providerPresets.map((preset) => (
+                <button
+                  key={preset.name}
+                  className="secondary-button"
+                  data-provider-add={preset.name}
+                  disabled={busy}
+                  onClick={() => {
+                    setStatus('');
+                    setEditingProvider({
+                      kind: preset.protocol === 'anthropic' ? 'anthropic' : 'openai',
+                      preset,
+                    });
+                  }}
+                >
+                  <Plus size={15} />
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+
             <div className="settings-entry-actions">
               <button
                 className="primary-button"
@@ -303,7 +346,7 @@ export function SettingsPage({
                 disabled={busy}
               >
                 <Plus size={15} />
-                添加 OpenAI 服务
+                自定义 OpenAI
               </button>
               <button
                 className="secondary-button"
@@ -315,7 +358,7 @@ export function SettingsPage({
                 disabled={busy}
               >
                 <Plus size={15} />
-                添加 Anthropic 服务
+                自定义 Anthropic
               </button>
             </div>
             {!state.providers.length && (
