@@ -71,9 +71,6 @@ body {
     margin: 14px 0 12px;
     padding: 10px 12px;
   }
-  .sidebar .nav-caption {
-    padding-bottom: 6px;
-  }
   .sidebar .nav-item {
     min-height: 34px;
     padding: 7px 10px;
@@ -221,7 +218,6 @@ button:active:not(:disabled) {
   min-height: 0;
   overflow-y: auto;
 }
-.nav-caption,
 .section-label {
   font-size: 10px;
   font-weight: 650;

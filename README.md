@@ -2,9 +2,9 @@
 
 **东北大学（沈阳）学生的本地工作台。** 把课表、待办、笔记、邮件和 AI 放在一起，从今天的安排开始。
 
-面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.5.0**。
+面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前版本 **0.5.1**。
 
-[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.5.0 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.0) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
+[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.5.1 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.1) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
 
 > 本项目由个人独立开发，非东北大学官方应用。
 
@@ -12,10 +12,10 @@
 
 | 平台                  | 安装包                                                                                                          |
 | --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| macOS · Apple Silicon | [NEU-Dela-0.5.0-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.5.0/NEU-Dela-0.5.0-arm64.dmg) |
-| Windows · x64         | [NEU-Dela.Setup.0.5.0.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.5.0/NEU-Dela.Setup.0.5.0.exe) |
+| macOS · Apple Silicon | [NEU-Dela-0.5.1-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.5.1/NEU-Dela-0.5.1-arm64.dmg) |
+| Windows · x64         | [NEU-Dela.Setup.0.5.1.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.5.1/NEU-Dela.Setup.0.5.1.exe) |
 
-安装包暂未签名，系统可能显示发布者提示。0.5.0 的 Mac 桌面验证已通过；Windows 已打包，尚未实机运行。
+安装包暂未签名，系统可能显示发布者提示。0.5.1 的生产构建与 Mac 侧栏目视检查已通过；Windows 尚未实机运行。
 
 ## 从接下来的一件事开始
 
@@ -105,6 +105,6 @@ npm test
 npm run smoke:actions
 ```
 
-152 项测试与生产构建通过，Mac 的 72 项完整桌面检查及 11 项动作检查通过。测试使用人工数据和本机模拟接口。更多命令与验证状态见[开发指南](docs/usage.md#开发与验证)。
+0.5.1 仅调整侧栏标题与间距，已通过生产构建和本机 Mac 侧栏目视检查。完整工作流的验证记录见[更新记录](CHANGELOG.md)。更多命令与验证状态见[开发指南](docs/usage.md#开发与验证)。
 
 更多文档：[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md) · [产品设计](docs/product-design.md)。

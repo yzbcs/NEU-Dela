@@ -1,12 +1,12 @@
 # NEU-Dela 使用与开发指南
 
-本文对应 **0.5.0**。[返回项目首页](../README.md) · [下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest)
+本文对应 **0.5.1**。[返回项目首页](../README.md) · [下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest)
 
 ## 安装与首次使用
 
-在 [0.5.0 发布页](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.0) 选择 Apple Silicon Mac 的 DMG 或 Windows x64 安装程序。Mac 将应用拖入“应用程序”后打开；Windows 按安装程序选择安装目录。
+在 [0.5.1 发布页](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.1) 选择 Apple Silicon Mac 的 DMG 或 Windows x64 安装程序。Mac 将应用拖入“应用程序”后打开；Windows 按安装程序选择安装目录。
 
-当前安装包未签名，系统可能提示无法验证发布者。0.5.0 的 Mac 桌面验证已通过；Windows 已打包，尚未实机运行。遇到问题时，可在仓库 [Issues](https://github.com/yzbcs/NEU-Dela/issues) 提供系统版本、应用版本和复现步骤。
+当前安装包未签名，系统可能提示无法验证发布者。0.5.1 的生产构建与 Mac 侧栏目视检查已通过；Windows 尚未实机运行。遇到问题时，可在仓库 [Issues](https://github.com/yzbcs/NEU-Dela/issues) 提供系统版本、应用版本和复现步骤。
 
 首次打开会进入“工作台首页”。课表、待办和笔记可直接使用，AI 与邮箱按需配置。应用加载失败时，启动页会显示原因并提供重试按钮。
 
@@ -161,7 +161,11 @@ npm run smoke:actions -- 'assets/output/releases/mac-arm64/NEU-Dela.app/Contents
 
 动作验证报告与截图生成在 `assets/output/actions-validation`；完整桌面验证产物位于 `assets/output/ai-validation`。完整邮件模拟验证使用本机 IMAP 与 TLS SMTP，需要 OpenSSL 生成测试证书，不向外部收件人发信；普通安装使用不需要 OpenSSL。
 
-### 0.5.0 验证状态
+### 0.5.1 验证状态
+
+本轮仅移除侧栏导航上方的“我的工作台”标题及其残留样式，生产构建与本机 Mac 侧栏目视检查通过。下列完整工作流记录来自 0.5.0。
+
+### 0.5.0 已有验证
 
 152 项单元与本机 HTTP/邮件测试通过，生产构建通过；Mac 完整桌面流程 72 项检查与动作流程 11 项检查通过，均包含重启恢复。Windows 安装包与 10 项包内资源检查通过，尚未实机运行。协议验证使用人工数据与本机模拟服务，真实模型质量尚未评估。 历史版本记录见[更新记录](../CHANGELOG.md)。
 

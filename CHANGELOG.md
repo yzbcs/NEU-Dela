@@ -1,5 +1,11 @@
 # 更新记录
 
+## [0.5.1](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.1) — 2026-11-07
+
+移除侧栏导航上方重复的“我的工作台”标题，让搜索框与导航之间的间距自然收紧。
+
+生产构建与本机 Mac 侧栏目视检查通过，Mac/Windows 安装包已生成。Windows 尚未实机运行。
+
 ## [0.5.0](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.0) — 2026-11-07
 
 AI 会话迁移到 Pi 1.5.0 原生 SDK，现有工作台与结果卡交互继续保留。

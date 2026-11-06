@@ -1022,7 +1022,6 @@ export function App() {
           <kbd>{/Mac/.test(navigator.platform) ? '⌘ K' : 'Ctrl K'}</kbd>
         </button>
         <nav className="workspace-nav" aria-label="工作台导航">
-          <div className="nav-caption">我的工作台</div>
           <button
             className={'nav-item ' + (!settings && page === 'home' ? 'active' : '')}
             onClick={() => navigate('home')}
