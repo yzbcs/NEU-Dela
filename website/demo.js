@@ -112,3 +112,80 @@ document.querySelector('#reset').addEventListener('click', () => {
 });
 reset();
 render(0);
+
+// Positions are percentages of the original desktop screenshots.
+const previews = [
+  ['工作台首页', 'assets/screenshots/home-light.png', '首页把接下来的课程、未来七天安排和待办放在一起。'],
+  ['我的课表', 'assets/screenshots/timetable-light.png', '按周查看课程时间、地点和节次。'],
+  ['今日便利贴', 'assets/screenshots/todo-light.png', '查看待完成与已完成的便利贴。'],
+  ['资料与笔记', 'notes-light.png', '在笔记列表和编辑区之间切换，按课程归类。'],
+  ['本地资料', 'assets/screenshots/local-files-light.png', '从目录打开文件，在右侧预览内容。'],
+  ['AI 助手', 'assets/screenshots/ai-actions.png', '查看 AI 创建的课程和笔记卡片。'],
+];
+const sidebar = [[0, 26], [5, 30.2], [2, 34.5], [1, 38.8], [3, 47.2]];
+const previewNav = document.querySelector('#preview-nav');
+const previewHotspots = document.querySelector('#preview-hotspots');
+const previewImage = document.querySelector('#app-shot');
+const previewName = document.querySelector('#preview-name');
+const previewDescription = document.querySelector('#preview-description');
+const previewFull = document.querySelector('#preview-full');
+const previewPlay = document.querySelector('#preview-play');
+let previewIndex = 0;
+let previewTimer;
+
+function showPreview(index) {
+  previewIndex = index;
+  const [name, path, description] = previews[index];
+  previewImage.src = path;
+  previewImage.alt = 'NEU-Dela 桌面应用截图：' + name;
+  previewFull.href = path;
+  previewName.textContent = name;
+  previewDescription.textContent = description;
+  for (const button of previewNav.children) {
+    button.setAttribute('aria-pressed', String(Number(button.dataset.preview) === index));
+  }
+  const homeLinks = [[1, 88.5, 22, 7.5, 5], [2, 69.8, 43.5, 27.7, 25]];
+  const libraryLinks = [[3, 19.4, index === 4 ? 12.4 : 18.2, 5.5, 4.8], [4, 25.7, index === 4 ? 12.4 : 18.2, 5.5, 4.8]];
+  const hotspots = sidebar.map(([target, top]) => [target, 1.4, top - ([2, 4, 5].includes(index) ? 2.2 : 0), 14.3, 4.1]);
+  if (index === 0) hotspots.push(...homeLinks);
+  if (index === 3 || index === 4) hotspots.push(...libraryLinks);
+  previewHotspots.innerHTML = hotspots.map(([target, x, y, w, h]) =>
+    '<button type="button" data-preview="' + target + '" aria-label="' + previews[target][0] + '" title="' + previews[target][0] + '" style="left:' + x + '%;top:' + y + '%;width:' + w + '%;height:' + h + '%"></button>'
+  ).join('');
+  previewImage.classList.remove('preview-enter');
+  requestAnimationFrame(() => previewImage.classList.add('preview-enter'));
+}
+
+function stopPreview() {
+  clearInterval(previewTimer);
+  previewTimer = undefined;
+  previewPlay.textContent = '▶ 播放界面导览';
+  previewPlay.setAttribute('aria-pressed', 'false');
+}
+
+previewNav.innerHTML = previews.map(([name], index) => '<button type="button" data-preview="' + index + '">' + name + '</button>').join('');
+for (const container of [previewNav, previewHotspots]) {
+  container.addEventListener('click', event => {
+    const button = event.target.closest('[data-preview]');
+    if (!button) return;
+    stopPreview();
+    const next = Number(button.dataset.preview);
+    showPreview(next);
+    if (container === previewHotspots) previewNav.children[next].focus({preventScroll: true});
+  });
+}
+previewPlay.addEventListener('click', () => {
+  if (previewTimer) return stopPreview();
+  showPreview(0);
+  previewPlay.textContent = 'Ⅱ 暂停界面导览';
+  previewPlay.setAttribute('aria-pressed', 'true');
+  previewTimer = setInterval(() => {
+    if (previewIndex === previews.length - 1) return stopPreview();
+    showPreview(previewIndex + 1);
+  }, 3200);
+});
+document.querySelector('.sandbox-demo').addEventListener('toggle', event => {
+  if (event.target.open) stopPreview();
+  else stop();
+});
+showPreview(0);

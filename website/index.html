@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#edf1e9">
 <link rel="canonical" href="https://yzbcs.github.io/NEU-Dela/">
 <link rel="icon" href="./assets/icon.png">
-<link rel="stylesheet" href="./style.css?v=interactive-1">
-<script src="./demo.js?v=interactive-1" defer></script>
+<link rel="stylesheet" href="./style.css?v=app-preview-1">
+<script src="./demo.js?v=app-preview-1" defer></script>
 <title>NEU-Dela · 东大学生的桌面工作台</title>
 </head>
 <body>
@@ -25,12 +25,24 @@
 <p class="platforms">macOS · Apple Silicon　/　Windows · x64</p>
 </section>
 <section class="wrap demo" id="demo" aria-labelledby="demo-title">
-<div class="demo-header"><div><p class="eyebrow">LIVE DEMO</p><h2 id="demo-title">在网页里试用 NEU-Dela</h2></div><button class="secondary" id="play" type="button" aria-pressed="false">▶ 播放功能演示</button></div>
+<div class="demo-header"><div><p class="eyebrow">APP PREVIEW</p><h2 id="demo-title">看看真实的 NEU-Dela</h2></div><button class="secondary" id="preview-play" type="button" aria-pressed="false">▶ 播放界面导览</button></div>
+<figure class="window app-preview">
+<div class="preview-frame">
+<img id="app-shot" src="./assets/screenshots/home-light.png" alt="NEU-Dela 桌面应用的工作台首页">
+<div id="preview-hotspots"></div>
+</div>
+<figcaption class="preview-caption"><strong id="preview-name">工作台首页</strong><span id="preview-description" aria-live="polite">点击截图里的侧栏切换界面。</span><a id="preview-full" href="./assets/screenshots/home-light.png" target="_blank" rel="noopener">查看原图 ↗</a></figcaption>
+<div id="preview-nav" class="preview-nav" aria-label="真实界面预览"></div>
+</figure>
+<details class="sandbox-demo">
+<summary>想亲手试试？打开可操作的练习工作台</summary>
+<div class="sandbox-header"><p>用示例数据试着勾待办、写笔记，或让 AI 创建一条提醒。</p><button class="secondary" id="play" type="button" aria-pressed="false">▶ 播放功能演示</button></div>
 <div class="window">
 <div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>NEU-Dela</span><span class="bar-label">在线体验</span></div>
 <div class="workbench"><nav id="demo-nav" aria-label="体验功能"></nav><div id="panel" class="demo-panel"><noscript>请启用 JavaScript 体验演示。</noscript></div></div>
 <div class="demo-footer"><span id="demo-status" role="status">你可以直接操作。AI 回复为演示，刷新后恢复示例数据。</span><button type="button" id="reset">重置体验</button></div>
 </div>
+</details>
 </section>
 <section class="wrap contribution" aria-labelledby="contribute-title">
 <div><p class="eyebrow">一起改进</p><h2 id="contribute-title">带上你自己的课表试试</h2><p>用起来哪里卡手，欢迎提 Issue。想修个 Bug、补份文档或加个功能，也欢迎提交 PR。</p></div>
