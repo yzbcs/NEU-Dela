@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="NEU-Dela 是面向东北大学同学的桌面工作台。把课表、待办、笔记、邮件和 AI 放在一起。">
+<meta name="theme-color" content="#edf1e9">
+<link rel="canonical" href="https://yzbcs.github.io/NEU-Dela/">
+<link rel="icon" href="./assets/icon.png">
+<link rel="stylesheet" href="./style.css">
+<script src="./demo.js" defer></script>
+<title>NEU-Dela · 东大学生的桌面工作台</title>
+</head>
+<body>
+<header class="wrap nav">
+<a class="brand" href="./"><img src="./assets/icon.png" width="34" height="34" alt=""> NEU-Dela</a>
+<nav aria-label="主导航"><a href="#demo">功能演示</a><a href="https://github.com/yzbcs/NEU-Dela">GitHub ↗</a></nav>
+</header>
+<main>
+<section class="hero wrap" aria-labelledby="title">
+<p class="tag"><span></span> 为东北大学同学制作的桌面应用</p>
+<h1 id="title">打开电脑，<br><em>先看看今天要做什么。</em></h1>
+<p class="intro">把课表、待办、笔记、资料和邮件放在一起。<br>上课、交作业、读论文，从同一个工作台开始。</p>
+<div class="buttons"><a class="primary" href="https://github.com/yzbcs/NEU-Dela/releases/latest">下载 NEU-Dela <span aria-hidden="true">↓</span></a><a class="secondary" href="#demo">看看怎么用 <span aria-hidden="true">↓</span></a></div>
+<p class="platforms">macOS · Apple Silicon　/　Windows · x64</p>
+</section>
+<section class="wrap demo" id="demo" aria-labelledby="demo-title">
+<div class="demo-header"><div><p class="eyebrow">PRODUCT TOUR</p><h2 id="demo-title">跟着一天的安排逛逛</h2></div><p>切换下方功能，查看真实应用界面。</p></div>
+<div class="tabs" aria-label="演示功能">
+<button type="button" data-view="home" aria-pressed="true">01 工作台</button>
+<button type="button" data-view="timetable" aria-pressed="false">02 课表</button>
+<button type="button" data-view="todo" aria-pressed="false">03 待办</button>
+<button type="button" data-view="notes" aria-pressed="false">04 笔记</button>
+<button type="button" data-view="files" aria-pressed="false">05 本地资料</button>
+<button type="button" data-view="ai" aria-pressed="false">06 AI 助手</button>
+</div>
+<figure class="window">
+<div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>NEU-Dela</span><span class="bar-label">应用截图</span></div>
+<a id="shot-link" href="./assets/screenshots/home-light.png" target="_blank" rel="noopener" aria-label="在新标签页查看原图"><img id="shot" src="./assets/screenshots/home-light.png" alt="NEU-Dela 工作台首页，显示未来七天课程和待办" width="2720" height="1678"></a>
+<figcaption aria-live="polite"><strong id="caption-title">从接下来的一件事开始</strong><span id="caption-body">打开首页，未来七天的课程与待办就排在同一条日程里。</span></figcaption>
+</figure>
+</section>
+<section class="wrap contribution" aria-labelledby="contribute-title">
+<div><p class="eyebrow">一起改进</p><h2 id="contribute-title">带上你自己的课表试试</h2><p>用起来哪里卡手，欢迎提 Issue。想修个 Bug、补份文档或加个功能，也欢迎提交 PR。</p></div>
+<div class="buttons"><a class="primary" href="https://github.com/yzbcs/NEU-Dela/releases/latest">下载安装</a><a class="secondary" href="https://github.com/yzbcs/NEU-Dela/issues">反馈问题 ↗</a><a class="secondary" href="https://github.com/yzbcs/NEU-Dela/blob/main/CONTRIBUTING.md">参与贡献 ↗</a></div>
+</section>
+</main>
+<footer class="wrap footer"><span>NEU-Dela · 独立开发，非东北大学官方应用</span><a href="https://github.com/yzbcs/NEU-Dela">项目源码 ↗</a></footer>
+</body>
+</html>
