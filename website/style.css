@@ -53,11 +53,12 @@ h2{font-size:clamp(24px,4vw,38px);margin:0;letter-spacing:-.035em}
 .preview-enter{animation:preview-enter .23s ease-out}
 @media(prefers-reduced-motion:reduce){.preview-enter{animation:none}}
 #preview-play{cursor:pointer;color:var(--ink)}
-.demo-pointer{position:absolute;z-index:2;width:clamp(17px,3.1%,36px);pointer-events:none;transition:left .6s cubic-bezier(.25,.8,.25,1),top .6s cubic-bezier(.25,.8,.25,1);filter:drop-shadow(0 2px 2px #0007)}
-.demo-pointer svg{display:block;width:100%}
-.demo-pointer.clicking svg{transform:scale(.85);transform-origin:top left}
-.demo-pointer.clicking::after{content:"";position:absolute;top:0;left:0;width:clamp(16px,3vw,32px);aspect-ratio:1;border:2px solid #7ee8c5;border-radius:50%;transform:translate(-45%,-45%);animation:click-ring .28s ease-out}
-@keyframes click-ring{from{opacity:1;scale:.45}to{opacity:0;scale:1.35}}
+.demo-pointer{position:absolute;z-index:2;width:clamp(16px,2.15%,25px);pointer-events:none;transition:left .6s cubic-bezier(.25,.8,.25,1),top .6s cubic-bezier(.25,.8,.25,1)}
+.demo-pointer svg{display:block;width:100%;transform:translate(-12.5%,-9.26%);transform-origin:12.5% 9.26%;filter:drop-shadow(0 1px 1px #122c325e) drop-shadow(0 3px 5px #122c3238)}
+.demo-pointer.clicking svg{transform:translate(-12.5%,-9.26%) scale(.92)}
+.pointer-tap{position:absolute;top:0;left:0;width:clamp(14px,2.4vw,24px);aspect-ratio:1;border:1px solid #b4ebd9;border-radius:50%;background:#74c7ad38;box-shadow:0 0 0 3px #74c7ad21;opacity:0;transform:translate(-50%,-50%)}
+.demo-pointer.clicking .pointer-tap{animation:pointer-tap .28s ease-out}
+@keyframes pointer-tap{from{opacity:.9;transform:translate(-50%,-50%) scale(.5)}to{opacity:0;transform:translate(-50%,-50%) scale(1.4)}}
 .demo-typing{position:absolute;left:29.1%;top:80.8%;width:53%;padding:.55% .25%;background:#1c2b31;color:#e7f5f3;font-size:clamp(6px,1vw,13px);line-height:1.3;pointer-events:none}
 @media(max-width:600px){#preview-play{margin-top:12px}}
-@media(prefers-reduced-motion:reduce){.demo-pointer{transition:none}.demo-pointer.clicking::after{animation:none}}
+@media(prefers-reduced-motion:reduce){.demo-pointer{transition:none}.demo-pointer.clicking .pointer-tap{animation:none;opacity:.55}}

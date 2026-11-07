@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#edf1e9">
 <link rel="canonical" href="https://yzbcs.github.io/NEU-Dela/">
 <link rel="icon" href="./assets/icon.png">
-<link rel="stylesheet" href="./style.css?v=operation-demo-1">
+<link rel="stylesheet" href="./style.css?v=cursor-2">
 <script src="./demo.js?v=operation-demo-1" defer></script>
 <title>NEU-Dela · 东大学生的桌面工作台</title>
 </head>
@@ -31,7 +31,16 @@
 <img id="app-shot" src="./assets/screenshots/home-light.png" alt="NEU-Dela 桌面应用的工作台首页">
 <div id="preview-hotspots"></div>
 <div class="demo-pointer" id="demo-pointer" aria-hidden="true" hidden>
-  <svg viewBox="0 0 24 28"><path d="M2 1v21l6-5 5 9 4-2-5-9 8-1z" fill="#172e34" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+  <span class="pointer-tap"></span>
+  <svg viewBox="0 0 24 27" focusable="false">
+    <defs>
+      <linearGradient id="pointer-fill" x2="0" y2="1">
+        <stop stop-color="#4b9e8f"/>
+        <stop offset="1" stop-color="#246258"/>
+      </linearGradient>
+    </defs>
+    <path d="M3 2.5 21 14.7l-8.3 1.4 3.7 7.5-3.3 1.6-3.7-7.5L3 23z" fill="url(#pointer-fill)" stroke="#fcfffd" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
 </div>
 <div id="demo-typing" class="demo-typing" aria-hidden="true" hidden></div>
 </div>
