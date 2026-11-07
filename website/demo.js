@@ -1,26 +1,114 @@
-const views = {
-  home: ['assets/screenshots/home-light.png', '从接下来的一件事开始', '打开首页，未来七天的课程与待办就排在同一条日程里。'],
-  timetable: ['assets/screenshots/timetable-light.png', '把课表带进工作台', '导入或手动录入课程，按周查看时间和地点，点一下课程就能新建课堂笔记。'],
-  todo: ['assets/screenshots/todo-light.png', '把作业截止时间记下来', '用便利贴记待办，给作业、组会或论文阅读设定时提醒。'],
-  notes: ['notes-light.png', '按课程整理课堂笔记', '用笔记本收纳课堂笔记、阅读记录和随手备忘。'],
-  files: ['assets/screenshots/local-files-light.png', '课程资料就在手边', '添加已有的本地文件夹，在工作台里浏览目录、阅读 Markdown。'],
-  ai: ['assets/screenshots/ai-actions.png', '说一句话，就能建待办', '接入模型后，可以让 AI 查课表、建待办或保存笔记，创建的记录可查看、编辑和撤销。'],
-};
+const panel = document.querySelector('#panel');
+const nav = document.querySelector('#demo-nav');
+const play = document.querySelector('#play');
+const status = document.querySelector('#demo-status');
+const help = status.textContent;
+const pages = [
+  ['工作台', '先看看接下来的课和待办。'],
+  ['课表', '展开课程详情，也可以切换周次。'],
+  ['待办', '勾选完成，或添加一条待办。'],
+  ['笔记', '编辑笔记，切换页面后仍会保留。'],
+  ['本地资料', '打开文件预览示例资料。'],
+  ['AI 助手', '试一句指令，让 AI 创建示例待办。'],
+];
+const lessons = [
+  [['周一 08:30', '机器学习', '信息学馆 A204'], ['周三 14:00', '自然语言处理', '教学楼 B302']],
+  [['周二 10:00', '机器学习习题课', '信息学馆 A204'], ['周四 14:00', '计算机网络', '教学楼 B302']],
+];
 
-const buttons = document.querySelectorAll('[data-view]');
-const shot = document.querySelector('#shot');
-const shotLink = document.querySelector('#shot-link');
-const captionTitle = document.querySelector('#caption-title');
-const captionBody = document.querySelector('#caption-body');
-
-for (const button of buttons) {
-  button.addEventListener('click', () => {
-    const [path, title, description] = views[button.dataset.view];
-    for (const item of buttons) item.setAttribute('aria-pressed', String(item === button));
-    shot.alt = 'NEU-Dela 应用截图：' + title;
-    shot.src = path;
-    shotLink.href = path;
-    captionTitle.textContent = title;
-    captionBody.textContent = description;
-  });
+let state;
+let view = 0;
+let timer;
+function reset() {
+  state = {week: 0, tasks: [{title: '整理机器学习课堂笔记', done: false}, {title: '提交课程实验报告', done: false}], note: '为什么训练误差更小，预测却不一定更好？\n\n下次课前：比较训练误差和验证误差，补一个正则化的例子。', ai: false};
 }
+const content = [
+  () => '<div class="demo-grid"><button data-go="1"><small>下一节课</small><strong>机器学习 · 周一 08:30</strong></button><button data-go="2"><small>待办事项</small><strong>' + state.tasks.filter(task => !task.done).length + ' 项未完成</strong></button><button data-go="3"><small>最近笔记</small><strong>机器学习 · 正则化</strong></button></div>',
+  () => '<p>第 ' + (9 + state.week) + ' 周</p>' + lessons[state.week].map(([time, title, room]) => '<details><summary>' + time + ' · ' + title + '</summary><p>浑南校区 · ' + room + '</p></details>').join('') + '<button id="week">' + (state.week ? '← 上一周' : '下一周 →') + '</button>',
+  () => '<div id="tasks"></div><form id="task-form"><input name="title" aria-label="新待办" placeholder="比如：明天交实验报告" maxlength="80" required><button type="submit">添加</button></form>',
+  () => '<label for="note">机器学习 / 正则化：让模型记住规律</label><textarea id="note" rows="6" maxlength="2000"></textarea>',
+  () => '<details><summary>机器学习 / 课程笔记.md</summary><p>比较训练误差与验证误差，理解正则化怎样改善泛化。</p></details><details><summary>组会 / 论文阅读提纲.md</summary><p>记录论文要解决的问题，再整理方法、关键实验和疑问。</p></details>',
+  () => '<button id="ask"' + (state.ai ? ' disabled' : '') + '>帮我设个明晚八点读论文的提醒</button>' + (state.ai ? '<p class="demo-result">已创建示例待办：明晚 20:00 读论文。</p><button data-go="2">查看待办 →</button>' : ''),
+];
+
+nav.innerHTML = pages.map(([name], index) => '<button type="button" data-go="' + index + '">' + name + '</button>').join('');
+function render(next) {
+  view = next;
+  for (const button of nav.children) button.setAttribute('aria-pressed', String(Number(button.dataset.go) === view));
+  panel.innerHTML = '<div class="demo-scene"><h3 tabindex="-1">' + pages[view][0] + '</h3><p>' + pages[view][1] + '</p>' + content[view]() + '</div>';
+  if (view === 3) panel.querySelector('#note').value = state.note;
+  if (view === 2) {
+    const list = panel.querySelector('#tasks');
+    state.tasks.forEach(task => {
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      const name = document.createElement('span');
+      checkbox.type = 'checkbox';
+      checkbox.checked = task.done;
+      checkbox.addEventListener('change', () => { task.done = checkbox.checked; });
+      name.textContent = task.title;
+      label.append(checkbox, name);
+      list.append(label);
+    });
+  }
+}
+function stop(message = help) {
+  clearInterval(timer);
+  timer = undefined;
+  play.textContent = '▶ 播放功能演示';
+  play.setAttribute('aria-pressed', 'false');
+  status.textContent = message;
+}
+document.querySelector('.workbench').addEventListener('click', event => {
+  const button = event.target.closest('button');
+  if (button?.dataset.go !== undefined) {
+    stop();
+    render(Number(button.dataset.go));
+    if (panel.contains(event.target) || !nav.contains(button)) panel.querySelector('h3').focus();
+  } else if (button?.id === 'week') {
+    state.week = 1 - state.week;
+    render(view);
+    panel.querySelector('#week').focus();
+  } else if (button?.id === 'ask' && !state.ai) {
+    state.ai = true;
+    state.tasks.push({title: '明晚 20:00 读论文', done: false});
+    render(view);
+    status.textContent = '已创建一条示例待办。';
+    panel.querySelector('[data-go]').focus();
+  }
+});
+panel.addEventListener('focusin', () => { if (timer) stop(); });
+panel.addEventListener('pointerdown', () => { if (timer) stop(); });
+panel.addEventListener('input', event => {
+  if (event.target.id === 'note') state.note = event.target.value;
+});
+panel.addEventListener('submit', event => {
+  event.preventDefault();
+  const title = new FormData(event.target).get('title').trim();
+  if (!title) return;
+  state.tasks.push({title, done: false});
+  render(2);
+  panel.querySelector('#task-form input').focus();
+  status.textContent = '已添加一条示例待办。';
+});
+play.addEventListener('click', () => {
+  if (timer) return stop('已暂停，可以继续手动体验。');
+  let index = 0;
+  const advance = () => {
+    if (index === pages.length) return stop('演示结束，可以继续手动体验。');
+    render(index);
+    status.textContent = (index + 1) + '/' + pages.length + ' · ' + pages[index][1];
+    index++;
+  };
+  play.textContent = 'Ⅱ 暂停演示';
+  play.setAttribute('aria-pressed', 'true');
+  advance();
+  timer = setInterval(advance, 3900);
+});
+document.querySelector('#reset').addEventListener('click', () => {
+  stop('已恢复示例数据。');
+  reset();
+  render(0);
+});
+reset();
+render(0);
