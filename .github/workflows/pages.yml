@@ -4,6 +4,12 @@ on:
     branches: [main]
     paths:
       - 'website/**'
+      - 'src/**'
+      - 'scripts/build-website.mjs'
+      - 'electron.vite.config.ts'
+      - 'tsconfig.json'
+      - 'package*.json'
+      - '.node-version'
       - 'assets/screenshots/**'
       - 'assets/icon.png'
       - '.github/workflows/pages.yml'
@@ -27,12 +33,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - name: Assemble website
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install build dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Build and assemble website
         run: |
-          mkdir -p _site/assets
-          cp website/* _site/
-          cp assets/icon.png _site/assets/
-          cp -R assets/screenshots _site/assets/
+          npm run build
+          node scripts/build-website.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

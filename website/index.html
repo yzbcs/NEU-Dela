@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#edf1e9">
 <link rel="canonical" href="https://yzbcs.github.io/NEU-Dela/">
 <link rel="icon" href="./assets/icon.png">
-<link rel="stylesheet" href="./style.css?v=cursor-2">
-<script src="./demo.js?v=operation-demo-1" defer></script>
+<link rel="stylesheet" href="./style.css?v=study-tour-1">
+<script src="./demo.js?v=study-tour-1" defer></script>
 <title>NEU-Dela · 东大学生的桌面工作台</title>
 </head>
 <body>
@@ -21,15 +21,18 @@
 <p class="tag"><span></span> 为东北大学同学制作的桌面应用</p>
 <h1 id="title">打开电脑，<br><em>先看看今天要做什么。</em></h1>
 <p class="intro">把课表、待办、笔记、资料和邮件放在一起。<br>上课、交作业、读论文，从同一个工作台开始。</p>
-<div class="buttons"><a class="primary" href="https://github.com/yzbcs/NEU-Dela/releases/latest">下载 NEU-Dela <span aria-hidden="true">↓</span></a><a class="secondary" href="#demo">在线试用 <span aria-hidden="true">↓</span></a></div>
+<div class="buttons"><a class="primary" href="https://github.com/yzbcs/NEU-Dela/releases/latest">下载 NEU-Dela <span aria-hidden="true">↓</span></a><a class="secondary" href="#demo">观看操作演示 <span aria-hidden="true">↓</span></a></div>
 <p class="platforms">macOS · Apple Silicon　/　Windows · x64</p>
 </section>
 <section class="wrap demo" id="demo" aria-labelledby="demo-title">
-<div class="demo-header"><div><p class="eyebrow">APP PREVIEW</p><h2 id="demo-title">看看真实的 NEU-Dela</h2></div><button class="secondary" id="preview-play" type="button" aria-pressed="false">▶ 播放操作演示</button></div>
+<div class="demo-header">
+  <div><p class="eyebrow">10 个章节 · 约 3 分半</p><h2 id="demo-title">用 NEU-Dela 准备一次课程答疑</h2><p class="tour-intro">从一封课程邮件出发，导入课表、整理讲义，再把答疑、实验提醒和复习提纲落到工作台。</p></div>
+  <div class="tour-controls"><button class="secondary" id="preview-restart" type="button" hidden>从头播放</button><button class="primary" id="preview-play" type="button">▶ 播放完整演示</button></div>
+</div>
 <figure class="window app-preview">
 <div class="preview-frame">
 <img id="app-shot" src="./assets/screenshots/home-light.png" alt="NEU-Dela 桌面应用的工作台首页">
-<div id="preview-hotspots"></div>
+<iframe id="demo-app" title="NEU-Dela 演示界面" tabindex="-1" aria-hidden="true" sandbox="allow-same-origin allow-scripts"></iframe>
 <div class="demo-pointer" id="demo-pointer" aria-hidden="true" hidden>
   <span class="pointer-tap"></span>
   <svg viewBox="0 0 24 27" focusable="false">
@@ -42,10 +45,13 @@
     <path d="M3 2.5 21 14.7l-8.3 1.4 3.7 7.5-3.3 1.6-3.7-7.5L3 23z" fill="url(#pointer-fill)" stroke="#fcfffd" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 </div>
-<div id="demo-typing" class="demo-typing" aria-hidden="true" hidden></div>
 </div>
-<figcaption class="preview-caption"><strong id="preview-name">工作台首页</strong><span id="preview-description" aria-live="polite">播放演示，看看如何勾待办和用 AI 创建事项。</span><a id="preview-full" href="./assets/screenshots/home-light.png" target="_blank" rel="noopener">查看原图 ↗</a></figcaption>
-<div id="preview-nav" class="preview-nav" aria-label="真实界面预览"></div>
+<div class="tour-progress" aria-hidden="true"><span id="tour-progress"></span></div>
+<figcaption class="preview-caption">
+  <span class="tour-badge" id="tour-step">01 / 10</span>
+  <div><strong id="preview-name">工作台首页</strong><span id="preview-description" aria-live="polite">全程使用示例数据。可以暂停，或直接跳到想看的章节。</span></div>
+</figcaption>
+<nav id="preview-nav" class="preview-nav" aria-label="演示章节"></nav>
 </figure>
 
 </section>
