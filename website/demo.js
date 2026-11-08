@@ -2,7 +2,6 @@ const stage = document.querySelector('.preview-frame');
 const app = document.querySelector('#demo-app');
 const pointer = document.querySelector('#demo-pointer');
 const play = document.querySelector('#preview-play');
-const restart = document.querySelector('#preview-restart');
 const nav = document.querySelector('#preview-nav');
 const name = document.querySelector('#preview-name');
 const description = document.querySelector('#preview-description');
@@ -222,7 +221,7 @@ async function start(index) {
   pointer.style.left = '16%';
   pointer.style.top = '30%';
   play.textContent = 'Ⅱ 暂停';
-  restart.hidden = false;
+  play.hidden = false;
   app.src = './app/?chapter=' + index + '&run=' + session.id;
   try {
     await tour.find('.dashboard-page', 260);
@@ -232,14 +231,14 @@ async function start(index) {
       await chapters[i][2](tour);
     }
     progress.style.width = '100%';
-    play.textContent = '↻ 重播完整演示';
+    play.hidden = true;
     description.textContent = '演示结束。可以点下方章节重看，或下载 App 体验自己的课表和资料。';
   } catch (error) {
     if (error === cancelled || current !== session) return;
     console.error(error);
     stage.classList.remove('is-ready');
     description.textContent = '这一段暂时没有加载成功。可以重试，或选择其他章节。';
-    play.textContent = '↻ 重播完整演示';
+    play.textContent = '▶ 播放完整演示';
   } finally {
     if (current === session) {
       current = undefined;
@@ -261,7 +260,6 @@ play.addEventListener('click', () => {
   current.paused = !current.paused;
   play.textContent = current.paused ? '▶ 继续播放' : 'Ⅱ 暂停';
 });
-restart.addEventListener('click', () => void start(0));
 const resize = () => stage.style.setProperty('--tour-scale', String(stage.clientWidth / 1360));
 resize();
 new ResizeObserver(resize).observe(stage);
