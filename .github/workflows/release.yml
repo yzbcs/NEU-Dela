@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     tags: ['v*']
-    paths: ['docs/releases/v*.md']
+    paths: ['docs/releases/v*.md', '.github/workflows/release.yml']
   workflow_dispatch:
 
 permissions:
@@ -108,7 +108,8 @@ jobs:
         run: |
           version="${RELEASE_TAG#v}"
           notes="docs/releases/$RELEASE_TAG.md"
-          tag_commit="$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha 2>/dev/null || true)"
+          tag_refs="$(git ls-remote --tags --sort=refname origin "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}")"
+          tag_commit="$(tail -n 1 <<< "$tag_refs" | cut -f1)"
           if [[ -n "$tag_commit" && "$tag_commit" != "$GITHUB_SHA" ]]; then
             echo "::error::$RELEASE_TAG points to a different commit."
             exit 1
