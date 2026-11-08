@@ -121,9 +121,7 @@
 
 ## 本地开发
 
-桌面端使用 Electron、React 和 TypeScript。**0.5.0 将 AI 会话迁移到 Pi 1.5.0 原生 SDK**，由 Pi 管理工具调用循环、完整 JSONL 工具记录与自动上下文压缩，旧聊天在首次继续对话时导入。OpenAI Responses、Chat Completions 兼容接口与 Anthropic Messages 三种协议继续支持。
-
-校园工具继续负责字段校验、数据保存、真实回执、同一回复内的创建去重与撤销。详见 [Pi 运行时说明](docs/pi-runtime.md)。
+桌面端使用 Electron、React 和 TypeScript。AI 会话使用 Pi SDK 对接模型服务与工作台工具。
 
 推荐 Node.js **24.22.1**，版本见 [.node-version](.node-version)。
 
@@ -140,4 +138,4 @@ npm run build
 
 GitHub Actions 在 Mac 和 Windows 上构建安装包。打包和发布步骤见[发布指南](docs/releasing.md)。
 
-更多文档：[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md) · [产品设计](docs/product-design.md)。
+[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md)

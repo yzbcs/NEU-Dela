@@ -21,7 +21,7 @@ npm run dev
 | `src/shared/`         | 类型、校验、搜索、日程与主题                               |
 | `website/`            | 官网与功能演示                                             |
 | `scripts/`            | 官网构建入口                                               |
-| `docs/`               | 使用、设计与发布说明                                       |
+| `docs/`               | 使用与发布说明                                             |
 | `assets/screenshots/` | 使用人工数据制作的公开截图                                 |
 
 构建结果在 `out/`，安装包在 `assets/output/releases/`。请将本地测试数据、日志和生成结果放在 `.gitignore` 中列出的目录。
