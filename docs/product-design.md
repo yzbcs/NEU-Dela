@@ -83,22 +83,16 @@ Create ONE standalone finished icon, square 1024 by 1024 composition, transparen
 - `src/renderer/DashboardPage.tsx`、`dashboard-design.css`：首页信息层级和响应式布局。
 - `src/renderer/App.tsx`、`style.css`：统一图标、导航、聊天欢迎区和提问草稿。
 - `src/renderer/motion.css`：微动效与减少动态效果。
-- `src/main/design-smoke.ts`、`scripts/design-smoke.ts`：本轮界面验证，使用隔离的人工数据。
 - `src/renderer/components/StartupScreen.tsx`、`startup.css`：品牌启动状态、失败重试。
 - `src/renderer/components/WorkspaceCreationCard.tsx`、`workspace-creations.css`：创建结果、查看编辑撤销与课程冲突说明。
 - `src/main/workbench.ts`、`workspace.ts`、`chat.ts`、`ai.ts`：三个创建工具、本机保存与撤销、同回复等价调用复用、停止或续接失败后的结果保留。
 - `src/main/index.ts`、`desktop.ts`、`src/preload/index.ts`、`src/shared/types.ts`、`src/renderer/App.tsx`、`WorkspacePages.tsx`：通知定位、提醒推迟与桌面导航接入。
-- `src/main/actions-smoke.ts`、`scripts/actions-smoke.ts`：0.4.0 动作桌面验证；`tests/chat-actions.test.ts`、`tests/workbench-write.test.ts`：协议续接及创建撤销测试。
 
 ## 后续优先级
 
 首次使用时，可以继续设计简短的“带入课表 → 记一件事 → 按需连接模型”引导。0.4.0 已补上提醒后的定位、推迟、完成与恢复入口；下一步应观察真实学生使用的模型能否准确区分建议与保存请求、是否正确追问缺失信息，并验证 Windows 实机显示和通知交互。首次使用引导尚未实现。
 
-## 交付与验证
-
-0.4.0 生产构建、最新类型检查和 10 个文件中的 123 项测试全部通过。开发版与最终 Mac 包各通过 11 项动作桌面检查，包含重启恢复，产出 6 张截图。Mac DMG 与 Windows x64 NSIS 均已放入 assets/output/releases，Windows 9 项包内资源检查全部通过，尚未在 Windows 实机运行，安装包未签名。本轮没有发送真实模型请求，也没有确认系统通知横幅送达。
-
-公开界面图位于 `assets/screenshots/`，均使用人工数据。运行桌面验证后，明细与截图写入 `assets/output/actions-validation/` 或 `assets/output/design-validation/`；这些本机运行产物不随源码提交。
+公开界面图位于 `assets/screenshots/`，均使用人工数据。
 
 ## 设置结构（0.7.1）
 
@@ -138,16 +132,13 @@ Create ONE standalone finished icon, square 1024 by 1024 composition, transparen
 
 设置中的本地数据说明与聊天提示同步采用这一行为，原设计中“每个对话可关闭工作台访问”的文案不再使用。
 
-### 设置实现入口与验证
+### 设置实现入口
 
 - `src/renderer/SettingsPage.tsx`：总览、子页、编辑流程、当前值与帮助内容。
 - `src/main/chat.ts`：测试当前模型输入且不保存；聊天始终注册工作台工具。
 - `src/main/mail.ts`：使用当前邮箱表单验证 IMAP/SMTP，复用已有凭据且不保存、不收信。
 - `src/main/workspace.ts`：单独更新学期和节次，保留当前课程与来源。
 - `src/main/desktop.ts`、`src/shared/workspace.ts`、`src/preload/index.ts`：设置接口、真实应用版本和数据目录。
-- `src/main/settings-smoke.ts`、`scripts/settings-smoke.ts`：隔离人工数据下的设置桌面流程与重启恢复；报告和截图位于 `assets/output/settings-validation/`。
-
-0.7.0 的 87 项针对性测试通过，覆盖连接测试不落盘、学期保留课程、旧聊天仍提供工具及本地文件读取。该版本开发版完成 72 项完整桌面检查，最终 Mac 包完成 10 项设置检查，两类桌面流程均通过重启恢复。两端安装包未签名，Windows 尚未实机运行。当前公开设置截图采用 0.7.1 最终 Mac 应用的深色总览，使用人工数据。
 
 ## 本地资料工作区（0.6.0 已实现）
 

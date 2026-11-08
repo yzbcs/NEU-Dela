@@ -260,5 +260,5 @@ export function desktopApi(
       return { version: app.getVersion(), dataDirectory: store.dataDirectory };
     },
   };
-  return { api, service, openTodo };
+  return { api, service };
 }

@@ -1,10 +1,10 @@
 # NEU-Dela
 
-**东北大学（沈阳）学生的本地工作台。** 把课表、待办、笔记、邮件和 AI 放在一起，从今天的安排开始。
+**东北大学学生的本地工作台。** 把课表、待办、笔记、邮件和 AI 放在一起，从今天的安排开始。
 
-面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。已发布版本 **0.7.1**，源码与本机开发版已更新至 **0.7.2**。
+面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前源码版本为 **0.7.2**。
 
-[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.7.1 发布说明](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.1) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
+[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.7.2 更新说明](docs/releases/v0.7.2.md) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
 
 > 本项目由个人独立开发，非东北大学官方应用。
 
@@ -14,10 +14,12 @@
 
 ## 下载
 
-| 平台                  | 安装包                                                                                                          |
-| --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| macOS · Apple Silicon | [NEU-Dela-0.7.1-arm64.dmg](https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.1/NEU-Dela-0.7.1-arm64.dmg) |
-| Windows · x64         | [NEU-Dela.Setup.0.7.1.exe](https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.1/NEU-Dela.Setup.0.7.1.exe) |
+在 [最新版发布页](https://github.com/yzbcs/NEU-Dela/releases/latest) 的 Assets 中选择对应的安装包。
+
+| 平台                  | 安装包       |
+| --------------------- | ------------ |
+| macOS · Apple Silicon | `.dmg`       |
+| Windows · x64         | `.exe`       |
 
 安装包未签名，系统可能显示发布者提示。Windows 版本已打包，实机运行待验证。
 
@@ -71,7 +73,7 @@
 
 ![深色设置总览：外观、连接、学期与本机数据](assets/screenshots/settings-dark.png)
 
-源码与本机开发版 0.7.2 提供 **DeepSeek、MiniMax、GLM** 快捷入口，自动填写服务地址、协议和默认模型。也可以使用自定义 OpenAI 或 Anthropic 兼容接口，按需编辑全部连接信息。
+0.7.2 提供 **DeepSeek、MiniMax、GLM** 快捷入口，自动填写服务地址、协议和默认模型。也可以使用自定义 OpenAI 或 Anthropic 兼容接口，按需编辑全部连接信息。
 
 ![0.7.2 模型服务，展示三个快捷供应商和两类自定义入口](assets/screenshots/model-providers-light.png)
 
@@ -105,7 +107,7 @@
 <details>
 <summary>截图版本与演示数据</summary>
 
-截图均使用人工数据。模型供应商截图来自 0.7.2 最终 Mac 应用，该版本当前提供源码与本机开发版。设置总览来自 0.7.1，本地资料来自 0.6.0。首页、课表、笔记、待办、搜索、AI 操作与启动画面来自前序桌面验证。AI 操作画面使用本机模拟服务演示保存与结果卡流程。
+截图均使用人工数据。模型服务来自 0.7.2，设置总览来自 0.7.1，本地资料来自 0.6.0。
 
 </details>
 
@@ -130,24 +132,12 @@ npm ci
 npm run dev
 ```
 
-使用人工数据和本机模拟模型体验应用：
-
-```sh
-npm run demo
-```
-
-构建与验证：
+构建应用：
 
 ```sh
 npm run build
-npm test
-npm run smoke:settings
-npm run smoke:files
-npm run smoke:actions
 ```
 
-0.7.0 的 87 项针对性测试通过；开发版完成 72 项完整桌面检查，最终 Mac 包完成 10 项设置检查，两类桌面流程均通过重启恢复。Mac DMG 与 Windows x64 安装包已生成；Windows 尚未实机运行，两端安装包未签名。验证使用人工资料与本机模拟服务。更多命令与验证状态见[开发指南](docs/usage.md#开发与验证)。
-
-后续版本通过 GitHub Actions 在 Mac 和 Windows 分别构建并运行桌面检查；推送版本标签后自动上传 Release，也可以手动试跑而不发布。操作步骤见[发布指南](docs/releasing.md)。
+GitHub Actions 在 Mac 和 Windows 上构建安装包。打包和发布步骤见[发布指南](docs/releasing.md)。
 
 更多文档：[更新记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md) · [产品设计](docs/product-design.md)。

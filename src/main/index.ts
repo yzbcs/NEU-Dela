@@ -12,12 +12,11 @@ import {
   dialog,
 } from 'electron';
 import { join } from 'node:path';
-import { readFileSync, mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
+import { mkdirSync, appendFileSync } from 'node:fs';
 import { z } from 'zod';
 import { Store } from './store';
 import { ChatService } from './chat';
 import { providerConnectionInput, providerInput } from '../shared/validation';
-import type { ProviderInput } from '../shared/types';
 import { desktopApi } from './desktop';
 
 const isolatedData = process.env.DOLA_DATA_DIR;
@@ -187,17 +186,6 @@ app
         return safeStorage.decryptString(data);
       },
     });
-    // 仅开发演示脚本传入人工配置，普通启动不读取环境中的真实模型密钥。
-    if (process.env.DOLA_DEMO_CONFIG) {
-      const providers = JSON.parse(
-        readFileSync(process.env.DOLA_DEMO_CONFIG, 'utf8'),
-      ) as ProviderInput[];
-      for (const provider of providers)
-        store.saveProvider({
-          ...provider,
-          id: store.providers.find((p) => p.name === provider.name)?.id,
-        });
-    }
     nativeTheme.themeSource = store.theme;
     nativeTheme.on('updated', () => {
       for (const win of BrowserWindow.getAllWindows())
@@ -214,107 +202,32 @@ app
     );
     registerIpc();
     await createWindow();
-    if (!process.argv.some((arg) => arg.startsWith('--smoke-'))) {
-      const icon = nativeImage
-        .createFromPath(
-          app.isPackaged
-            ? join(process.resourcesPath, 'icon.png')
-            : join(app.getAppPath(), 'assets/icon.png'),
-        )
-        .resize({ width: 18, height: 18 });
-      tray = new Tray(icon);
-      tray.setToolTip('NEU-Dela · 后台提醒运行中');
-      tray.setContextMenu(
-        Menu.buildFromTemplate([
-          { label: '打开 NEU-Dela', click: showWindow },
-          { type: 'separator' },
-          { label: '退出并停止提醒', click: () => app.quit() },
-        ]),
-      );
-      tray.on('click', showWindow);
-      reminderTimer = setInterval(() => {
-        try {
-          desktop.service.tick();
-        } catch (error) {
-          console.error('提醒失败：', error instanceof Error ? error.message : '系统通知不可用');
-        }
-      }, 15000);
-      powerMonitor.on('resume', () => desktop.service.tick());
-      desktop.service.tick();
-    }
-    if (
-      process.argv.includes('--smoke-ai') ||
-      process.argv.includes('--smoke-restore') ||
-      process.argv.includes('--smoke-design') ||
-      process.argv.includes('--smoke-actions') ||
-      process.argv.includes('--smoke-actions-restore') ||
-      process.argv.includes('--smoke-local-files') ||
-      process.argv.includes('--smoke-local-files-restore') ||
-      process.argv.includes('--smoke-settings') ||
-      process.argv.includes('--smoke-settings-restore')
-    ) {
+    const icon = nativeImage
+      .createFromPath(
+        app.isPackaged
+          ? join(process.resourcesPath, 'icon.png')
+          : join(app.getAppPath(), 'assets/icon.png'),
+      )
+      .resize({ width: 18, height: 18 });
+    tray = new Tray(icon);
+    tray.setToolTip('NEU-Dela · 后台提醒运行中');
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        { label: '打开 NEU-Dela', click: showWindow },
+        { type: 'separator' },
+        { label: '退出并停止提醒', click: () => app.quit() },
+      ]),
+    );
+    tray.on('click', showWindow);
+    reminderTimer = setInterval(() => {
       try {
-        if (process.argv.some((arg) => arg.startsWith('--smoke-settings'))) {
-          const { runSettingsSmoke } = await import('./settings-smoke');
-          await runSettingsSmoke(
-            service,
-            window,
-            process.argv.includes('--smoke-settings-restore'),
-          );
-        } else if (process.argv.some((arg) => arg.startsWith('--smoke-local-files'))) {
-          const { runLocalFilesSmoke } = await import('./local-files-smoke');
-          await runLocalFilesSmoke(
-            service,
-            window,
-            process.argv.includes('--smoke-local-files-restore'),
-          );
-        } else if (process.argv.some((arg) => arg.startsWith('--smoke-actions'))) {
-          const { runActionsSmoke } = await import('./actions-smoke');
-          await runActionsSmoke(
-            service,
-            window,
-            desktop.openTodo,
-            process.argv.includes('--smoke-actions-restore'),
-          );
-        } else if (process.argv.includes('--smoke-design')) {
-          const { runDesignSmoke } = await import('./design-smoke');
-          await runDesignSmoke(service, window);
-        } else {
-          const { runDesktopSmoke, runRestoreSmoke } = await import('./smoke');
-          if (process.argv.includes('--smoke-restore')) await runRestoreSmoke(service, window);
-          else await runDesktopSmoke(service, window);
-        }
-        app.exit(0);
+        desktop.service.tick();
       } catch (error) {
-        const directory = join(
-          process.cwd(),
-          process.argv.some((arg) => arg.startsWith('--smoke-settings'))
-            ? 'assets/output/settings-validation'
-            : process.argv.some((arg) => arg.startsWith('--smoke-local-files'))
-              ? 'assets/output/local-files-validation'
-              : process.argv.some((arg) => arg.startsWith('--smoke-actions'))
-                ? 'assets/output/actions-validation'
-                : process.argv.includes('--smoke-design')
-                  ? 'assets/output/design-validation'
-                  : 'assets/output/ai-validation',
-        );
-        mkdirSync(directory, { recursive: true });
-        writeFileSync(
-          join(directory, 'desktop-error.png'),
-          (await window.webContents.capturePage()).toPNG(),
-        );
-        writeFileSync(
-          join(directory, 'desktop-ui-error.txt'),
-          await window.webContents.executeJavaScript('document.body.innerText'),
-        );
-        writeFileSync(
-          join(directory, 'desktop-error.txt'),
-          error instanceof Error ? (error.stack ?? error.message) : String(error),
-        );
-        console.error('桌面冒烟失败，详情已保存到 ' + join(directory, 'desktop-error.txt'));
-        app.exit(1);
+        console.error('提醒失败：', error instanceof Error ? error.message : '系统通知不可用');
       }
-    }
+    }, 15000);
+    powerMonitor.on('resume', () => desktop.service.tick());
+    desktop.service.tick();
   })
   .catch((error) => {
     const message = error instanceof Error ? error.message : '启动失败';

@@ -1,5 +1,6 @@
 node_modules/
 out/
+/_site/
 assets/input/
 assets/output/
 assets/logs/
@@ -8,6 +9,21 @@ assets/logs/
 !.env.example
 .DS_Store
 *.tsbuildinfo
+*.log
 
-# Local development handoff contains machine-specific validation history.
+# Local test fixtures and development notes.
+/tests/
+/vitest.config.ts
+/scripts/*-smoke.ts
+/scripts/smoke.ts
+/scripts/demo.ts
+/scripts/graduate-fixture.ts
+/scripts/mock-server.ts
+/scripts/workspace-fixtures.ts
+/src/main/*-smoke.ts
+/src/main/smoke.ts
 /docs/README.md
+/docs/campus-assistant-references.md
+/docs/superagent-assessment.md
+/website/demo-*.png
+/website/notes-light.png

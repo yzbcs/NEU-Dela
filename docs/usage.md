@@ -1,10 +1,10 @@
 # NEU-Dela 使用与开发指南
 
-本文对应 **0.7.1**。[返回项目首页](../README.md) · [下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest)
+本文对应 **0.7.2**。[返回项目首页](../README.md) · [下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest)
 
 ## 安装与首次使用
 
-在 [0.7.1 发布页](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.1) 选择 Apple Silicon Mac 的 DMG 或 Windows x64 安装程序。Mac 将应用拖入“应用程序”后打开；Windows 按安装程序选择安装目录。
+在 [最新版发布页](https://github.com/yzbcs/NEU-Dela/releases/latest) 选择 Apple Silicon Mac 的 DMG 或 Windows x64 安装程序。Mac 将应用拖入“应用程序”后打开。Windows 按安装程序选择安装目录。
 
 Mac 与 Windows 安装包均已生成，但尚未签名，系统可能提示无法验证发布者；Windows 尚未实机运行。遇到问题时，可在仓库 [Issues](https://github.com/yzbcs/NEU-Dela/issues) 提供系统版本、应用版本和复现步骤。
 
@@ -158,62 +158,14 @@ npm ci
 npm run dev
 ```
 
-无需真实模型密钥的演示模式：
-
-```sh
-npm run demo
-```
-
-演示模式启动本机模拟 HTTP 服务和桌面窗口，使用人工测试密钥；演示数据位于 `assets/output/demo`，与普通启动的应用数据目录分开。
-
 ### 常用命令
 
-| 命令                    | 作用                                                      |
-| ----------------------- | --------------------------------------------------------- |
-| `npm run typecheck`     | TypeScript 类型检查                                       |
-| `npm run build`         | 类型检查与生产构建                                        |
-| `npm test`              | 单元与本地 HTTP 协议测试                                  |
-| `npm run smoke:settings` | 设置总览、独立保存与连接测试、学期编辑、聊天返回及重启恢复 |
-| `npm run smoke:files`   | 本地资料目录、Markdown、相对链接、刷新、AI 草稿与重启恢复 |
-| `npm run smoke:actions` | AI 创建、结果卡、启动与通知定位的桌面验证，包含重启恢复   |
-| `npm run smoke:design`  | 首页、搜索、主题等界面验证                                |
-| `npm run smoke`         | AI、工作台和邮件等完整桌面工作流验证                      |
-| `npm run package:mac`   | 构建 Apple Silicon Mac DMG                                |
-| `npm run package:win`   | 构建 Windows x64 NSIS 安装包                              |
-
-桌面验证会启动真实 Electron 窗口；先构建再运行：
-
-```sh
-npm run build
-npm test
-npm run smoke:settings
-npm run smoke:files
-npm run smoke:actions
-```
-
-可将最终 Mac 包的可执行文件传给动作验证：
-
-```sh
-npm run smoke:actions -- 'assets/output/releases/mac-arm64/NEU-Dela.app/Contents/MacOS/NEU-Dela'
-```
-
-设置验证报告与截图生成在 `assets/output/settings-validation`；本地资料验证产物位于 `assets/output/local-files-validation`，动作验证产物位于 `assets/output/actions-validation`，完整桌面验证产物位于 `assets/output/ai-validation`。完整邮件模拟验证使用本机 IMAP 与 TLS SMTP，需要 OpenSSL 生成测试证书，不向外部收件人发信；普通安装使用不需要 OpenSSL。
-
-### 0.7.0 已有验证
-
-87 项针对性测试通过，覆盖未保存模型和邮箱连接的测试、凭据复用、学期设置保留原课程、旧对话继续获得工作台工具，以及本地资料读取。
-
-开发版的 72 项完整桌面检查与重启恢复通过。该版本最终 Mac 包通过 10 项设置检查与重启恢复。两端安装包已生成且未签名；Windows 尚未实机运行。验证使用人工资料与本机模拟服务，没有验证真实模型的理解质量。
-
-### 0.6.0 已有验证
-
-12 个文件中的 160 项单元与本机协议测试、生产构建通过。开发版完成 12 项本地资料检查和 72 项完整桌面检查，均包含重启恢复。本地资料流程覆盖目录浏览、相对图片与文档链接、预览与源码、文内查找、外部修改后刷新、丢失文件、深浅主题、小窗口、AI 草稿及来源定位。
-
-最终 Mac 包也通过 13 项本地资料检查及重启恢复，公开的本地资料截图来自这个安装包。Windows 安装包已生成，10 项包内资源检查通过，尚未实机运行。本轮使用人工资料与本机模拟服务，没有向真实模型发出请求。
-
-### 0.5.0 已有验证
-
-152 项单元与本机 HTTP/邮件测试通过，生产构建通过；Mac 完整桌面流程 72 项检查与动作流程 11 项检查通过，均包含重启恢复。Windows 安装包与 10 项包内资源检查通过，尚未实机运行。协议验证使用人工数据与本机模拟服务，真实模型质量尚未评估。 历史版本记录见[更新记录](../CHANGELOG.md)。
+| 命令                  | 作用                        |
+| --------------------- | --------------------------- |
+| `npm run typecheck`   | TypeScript 类型检查         |
+| `npm run build`       | 类型检查与生产构建          |
+| `npm run package:mac` | 构建 Apple Silicon Mac DMG  |
+| `npm run package:win` | 构建 Windows x64 NSIS 安装包 |
 
 ### 代码位置
 
@@ -222,8 +174,8 @@ npm run smoke:actions -- 'assets/output/releases/mac-arm64/NEU-Dela.app/Contents
 | `src/main`     | Electron 主进程、模型服务、工作台存储与邮箱 |
 | `src/renderer` | React 界面                                  |
 | `src/shared`   | 共享类型、工作台模型与校验                  |
-| `scripts`      | 开发演示、模拟服务与桌面验证入口            |
-| `tests`        | 单元与协议测试                              |
-| `assets`       | 图标、截图与本地生成产物                    |
+| `website`      | 官网与功能演示                              |
+| `scripts`      | 官网构建入口                                |
+| `assets`       | 应用图标与公开截图                          |
 
 打包产物默认位于 `assets/output/releases`。项目使用 Electron、React 和 TypeScript，依赖及脚本以 [package.json](../package.json) 为准。

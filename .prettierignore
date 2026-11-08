@@ -2,3 +2,8 @@ node_modules
 out
 assets
 package-lock.json
+src/main/*-smoke.ts
+src/main/smoke.ts
+docs/README.md
+docs/campus-assistant-references.md
+docs/superagent-assessment.md
