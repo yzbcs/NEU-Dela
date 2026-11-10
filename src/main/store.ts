@@ -3,6 +3,11 @@ import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync } from '
 import { join } from 'node:path';
 import { providerInput, sdkBaseUrl } from '../shared/validation';
 import { emptyWorkspace, type Workspace } from '../shared/workspace';
+import {
+  chatTitleVersion,
+  hasLegacyAutomaticTitle,
+  summarizeChatTitle,
+} from '../shared/chat-title';
 import type {
   AppState,
   Chat,
@@ -39,6 +44,10 @@ export class Store {
       const settings = JSON.parse(readFileSync(this.path('settings.json'), 'utf8'));
       this.providers = settings.providers;
       this.theme = settings.theme ?? 'system';
+      if (!settings.imageInputDefaultsApplied) {
+        this.providers = this.providers.map((provider) => ({ ...provider, supportsImages: true }));
+        this.saveSettings();
+      }
     }
     if (existsSync(this.path('keys.bin'))) {
       this.keys = JSON.parse(codec.decrypt(readFileSync(this.path('keys.bin'))));
@@ -52,6 +61,14 @@ export class Store {
             message.error = '上次生成因应用退出而中断，可以继续提问。';
           }
         }
+      let updatedTitles = false;
+      for (const chat of this.chats) {
+        if (!chat.messages.length || (chat.titleSummaryVersion ?? 0) >= chatTitleVersion) continue;
+        if (hasLegacyAutomaticTitle(chat)) chat.title = summarizeChatTitle(chat.messages);
+        chat.titleSummaryVersion = chatTitleVersion;
+        updatedTitles = true;
+      }
+      if (updatedTitles) this.saveChats();
     }
   }
 
@@ -92,7 +109,11 @@ export class Store {
   private saveSettings() {
     this.write(
       'settings.json',
-      JSON.stringify({ providers: this.providers, theme: this.theme }, null, 2),
+      JSON.stringify(
+        { providers: this.providers, theme: this.theme, imageInputDefaultsApplied: true },
+        null,
+        2,
+      ),
     );
   }
   setTheme(theme: Theme) {

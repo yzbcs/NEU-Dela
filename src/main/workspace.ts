@@ -11,6 +11,7 @@ import {
   type Timetable,
   type TimetableSettings,
   type Course,
+  type Workspace,
 } from '../shared/workspace';
 
 export const todoInput = z.object({
@@ -55,6 +56,11 @@ export class WorkspaceService {
     private changed: () => void,
     private notify: (todo: Todo) => void,
   ) {}
+  setDegree(value: Workspace['degree']) {
+    this.store.workspace.degree = z.enum(['undergrad', 'graduate']).parse(value);
+    this.store.workspace.degreeConfirmed = true;
+    this.save();
+  }
   saveTodo(raw: TodoInput) {
     const input = todoInput.parse(raw);
     if ((input.reminder || input.repeat !== 'none') && !input.dueAt)

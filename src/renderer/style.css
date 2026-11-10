@@ -76,8 +76,8 @@ body {
     padding: 7px 10px;
     margin: 2px 0;
   }
-  .sidebar .history-heading {
-    padding: 10px 10px 6px;
+  .sidebar .chat-history-panel {
+    margin-top: 10px;
   }
   .sidebar .campus {
     margin-top: 8px;
@@ -259,87 +259,6 @@ button:active:not(:disabled) {
   font-size: 9px;
   margin-left: auto;
   color: var(--text-muted);
-}
-.history-heading {
-  flex-shrink: 0;
-  padding: 29px 12px 12px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--text-muted);
-  letter-spacing: 0.8px;
-}
-.history-heading > span:last-child {
-  font-size: 10px;
-}
-.history {
-  flex: 1 0 76px;
-  overflow: auto;
-  min-height: 76px;
-}
-.history-row {
-  display: flex;
-  align-items: center;
-  border-radius: 7px;
-  padding: 0 8px;
-  margin: 3px 0;
-}
-.history-row.current {
-  background: var(--selected);
-}
-.history-row:hover {
-  background: var(--hover);
-}
-.history-row > button:first-child {
-  border: 0;
-  background: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  flex: 1;
-  text-align: left;
-  padding: 11px 4px;
-  font-size: 11px;
-  color: var(--text);
-}
-.history-row > button:first-child > span {
-  overflow-wrap: anywhere;
-}
-.history-row svg {
-  flex-shrink: 0;
-}
-.history-delete {
-  border: 0;
-  background: none;
-  color: var(--text-muted);
-  padding: 4px;
-  visibility: hidden;
-}
-.history-row:hover .history-delete,
-.history-delete:focus {
-  visibility: visible;
-}
-.history-empty {
-  font-size: 11px;
-  line-height: 1.9;
-  color: var(--text-muted);
-  padding: 10px 12px;
-}
-.history-search {
-  flex-shrink: 0;
-  margin: 0 10px 10px;
-  display: flex;
-  gap: 6px;
-  color: var(--text-muted);
-  align-items: center;
-}
-.history-search input {
-  width: 100%;
-  background: none;
-  border: 0;
-  font-size: 11px;
-  color: var(--text);
 }
 .sidebar-bottom {
   margin-top: 10px;
@@ -587,13 +506,7 @@ button:active:not(:disabled) {
   max-width: 55%;
   position: relative;
 }
-.model-service-name {
-  font-size: 10px;
-  color: var(--text-muted);
-  padding-right: 8px;
-  border-right: 1px solid var(--border);
-  overflow-wrap: anywhere;
-}
+
 .status-dot {
   width: 5px;
   height: 5px;

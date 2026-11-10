@@ -93,9 +93,62 @@ function registerIpc() {
     service.selectModel(uuid.parse(chatId), uuid.parse(providerId), modelId.parse(model)),
   );
   handle('chat-remove', (id: unknown) => service.removeChat(uuid.parse(id)));
-  handle('chat-send', (id: unknown, text: unknown) =>
-    service.send(uuid.parse(id), z.string().trim().min(1).max(100000).parse(text)),
+  handle('chat-send', (id: unknown, text: unknown, attachments: unknown) =>
+    service.send(
+      uuid.parse(id),
+      z.string().trim().max(100000).parse(text),
+      z.array(uuid).max(6).default([]).parse(attachments),
+    ),
   );
+  handle('chat-attachments-choose', async () => {
+    const selected = await dialog.showOpenDialog(window, {
+      title: '添加 AI 引用文件',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        {
+          name: 'PDF、图片或文字文件',
+          extensions: [
+            'pdf',
+            'png',
+            'jpg',
+            'jpeg',
+            'webp',
+            'txt',
+            'md',
+            'csv',
+            'tsv',
+            'json',
+            'log',
+            'py',
+            'js',
+            'ts',
+            'html',
+            'xml',
+            'yaml',
+            'yml',
+          ],
+        },
+      ],
+    });
+    if (selected.canceled) return [];
+    if (selected.filePaths.length > 6) throw new Error('每次最多添加 6 个引用文件。');
+    const files = [];
+    try {
+      for (const path of selected.filePaths) files.push(await service.attachments.addFile(path));
+      return files;
+    } catch (error) {
+      await service.attachments.discard(files.map((file) => file.id));
+      throw error;
+    }
+  });
+  handle('chat-attachments-discard', (ids: unknown) =>
+    service.attachments.discard(z.array(uuid).max(6).parse(ids)),
+  );
+  handle('chat-attachment-open', async (id: unknown) => {
+    const file = await service.attachments.get(uuid.parse(id));
+    const error = await shell.openPath(file.path);
+    if (error) throw new Error(error);
+  });
   handle('chat-stop', (id: unknown) => service.stop(uuid.parse(id)));
   handle('chat-undo-creation', (chatId: unknown, messageId: unknown, creationId: unknown) =>
     service.undoCreation(uuid.parse(chatId), uuid.parse(messageId), uuid.parse(creationId)),
@@ -193,6 +246,9 @@ app
     });
     service = new ChatService(store, (state) => {
       if (window && !window.isDestroyed()) window.webContents.send('dola:change', state);
+    });
+    await service.attachments.cleanup().catch((error: NodeJS.ErrnoException) => {
+      console.warn('引用文件清理未完成', error.code);
     });
     desktop = desktopApi(
       store,

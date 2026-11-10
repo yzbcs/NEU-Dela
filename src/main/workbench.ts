@@ -1,6 +1,7 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { basename, dirname, extname, join } from 'node:path';
-import { createRequire } from 'node:module';
+import { readdir } from 'node:fs/promises';
+import { basename, extname, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import type { ImageContent } from '@earendil-works/pi-ai';
 import { z } from 'zod';
 import {
   campusLinksFor,
@@ -11,12 +12,14 @@ import {
   periodTimes,
   weekAt,
 } from '../shared/workspace';
-import type { WorkspaceCreation, WorkspaceSource } from '../shared/types';
+import type { WorkspaceCreation, WorkspaceSource, TimetableProposal } from '../shared/types';
 import type { Store } from './store';
 import { MailService } from './mail';
-import { addCoursesInput, todoInput, WorkspaceService } from './workspace';
+import { addCoursesInput, courseInput, todoInput, WorkspaceService } from './workspace';
 import { courseConflicts } from '../shared/agenda';
-import { resolveResourcePath, textExtensions } from './local-files';
+import { resolveResourcePath } from './local-files';
+import { studentProfiles } from '../shared/student-profile';
+import { readFileContent, textChunk } from './file-content';
 
 const chunk = {
   offset: z.number().int().min(0).default(0),
@@ -34,6 +37,25 @@ const schemas = {
     repeat: z.enum(['none', 'daily', 'weekdays', 'weekly']).default('none'),
   }),
   add_courses: addCoursesInput,
+  propose_timetable_import: z.object({
+    unresolvedCourses: z
+      .array(z.object({ name: z.string().min(1), reason: z.string().min(1) }))
+      .max(300)
+      .default([]),
+    courses: z
+      .array(
+        courseInput.omit({ id: true }).extend({
+          weeks: z.string().default(''),
+          location: z.string().default(''),
+          teacher: z.string().default(''),
+          detail: z.string().default(''),
+        }),
+      )
+      .min(1)
+      .max(300),
+    term: z.string().default(''),
+    firstMonday: z.union([z.literal(''), z.iso.date()]).default(''),
+  }),
   create_note: z.object({
     title: z.string().trim().min(1, '请填写笔记标题').max(300),
     body: z.string().max(1000000),
@@ -58,6 +80,7 @@ const schemas = {
     resourceId: z.string(),
     path: z.string().default(''),
     page: z.number().int().min(1).default(1),
+    mode: z.enum(['text', 'image']).default('text'),
     ...chunk,
   }),
   list_mail: z.object({
@@ -74,6 +97,8 @@ const schemas = {
   }),
 };
 const descriptions: Record<keyof typeof schemas, string> = {
+  propose_timetable_import:
+    '根据用户要求从文件识别课表后准备可预览、编辑的导入草稿。先读取文件并查询当前学期与节次。day 为星期一至日的 1-7，start/end 为第 1-12 节。星期或节次不确定的课程列入 unresolvedCourses 并说明原因，不猜测填入 courses；courses 只接收已核实的安排。未知周次、学期、首周周一留空。草稿由用户预览核对保存。',
   create_todo:
     '在用户明确要求记录、添加待办或设置提醒时新建一条便利贴，返回实际保存的记录。title 必填；无时间时 dueAt 留空，reminder=false，repeat=none。日期按北京时间解释；提醒或重复必须有明确时间，不猜测缺失时间。不会修改或删除既有便利贴。',
   add_courses:
@@ -87,7 +112,7 @@ const descriptions: Record<keyof typeof schemas, string> = {
   list_files:
     '列出本地资料文件夹下某一级目录，不递归扫描。resourceId 来自资料目录，path 是该文件夹内的相对路径；一次返回最多 100 项，使用 offset 继续。',
   read_file:
-    '读取已添加的本机文件，或本地资料文件夹内的相对路径。支持 PDF（每次一页）及 UTF-8 文本、Markdown、代码、CSV、JSON。PDF 使用 page 翻页；长文本使用 offset、length，按返回的 nextOffset 继续。不读取网站链接、扫描图片、Word 或未添加到本地资料的路径。',
+    '读取已添加的本机文件，或本地资料文件夹内的相对路径。支持 PDF（每次一页）及 UTF-8 文字、Markdown、代码、CSV、JSON。PDF 使用 page 翻页，mode=image 可核对页面布局或扫描页；图片需要模型开启图片理解。长文字使用 offset、length 和 nextOffset 继续。',
   list_mail:
     '从已配置邮箱读取一页邮件目录，每页最多 40 封。账号 ID 先查询工作台 mail 模块获得；默认收件箱 INBOX。返回 uidValidity 和每封邮件的 uid，供读取正文。不发送邮件。',
   read_mail:
@@ -109,6 +134,8 @@ export function activityLabel(name: string) {
       {
         create_todo: '添加便利贴',
         add_courses: '添加课程',
+        propose_timetable_import: '准备课表导入草稿',
+        read_chat_attachment: '读取引用文件',
         create_note: '创建笔记',
         query_workspace: '查询工作台',
         read_workspace_item: '读取笔记与待办',
@@ -125,6 +152,8 @@ export interface WorkbenchResult {
   source?: Omit<WorkspaceSource, 'citation'>;
   detail: string;
   creations?: WorkspaceCreation[];
+  timetableDrafts?: TimetableProposal[];
+  images?: ImageContent[];
 }
 function normalizeTodoTime(value: string) {
   if (!value.trim()) return '';
@@ -142,16 +171,9 @@ export function normalizeCreationArguments(name: string, raw: string): unknown {
     return { ...input, dueAt: normalizeTodoTime(input.dueAt) };
   }
   if (name === 'add_courses') return schemas.add_courses.parse(args);
+  if (name === 'propose_timetable_import') return schemas.propose_timetable_import.parse(args);
   if (name === 'create_note') return schemas.create_note.parse(args);
   return args;
-}
-function textChunk(text: string, offset: number, length: number) {
-  return {
-    text: text.slice(offset, offset + length),
-    totalCharacters: text.length,
-    offset,
-    nextOffset: offset + length < text.length ? offset + length : null,
-  };
 }
 export class WorkbenchReader {
   private mail: MailService;
@@ -168,6 +190,7 @@ export class WorkbenchReader {
   undoCreation(creation: WorkspaceCreation) {
     if (creation.status === 'undone') return;
     const w = this.store.workspace;
+
     if (creation.kind === 'todo') {
       const current = w.todos.find((item) => item.id === creation.record.id);
       if (!current) return;
@@ -207,7 +230,7 @@ export class WorkbenchReader {
     const w = this.store.workspace;
     return (
       `当前北京时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}。` +
-      `当前选择：${w.degree === 'undergrad' ? '本科生' : '研究生'}。工作台中有 ${w.timetable.courses.length} 条课程安排、${w.todos.filter((t) => !t.done).length} 项未完成待办、${w.notes.length} 篇笔记、${w.resources.length} 项本地资料、${w.mailAccounts.length} 个邮箱账号。`
+      `当前选择：${studentProfiles[w.degree].label}。工作台中有 ${w.timetable.courses.length} 条课程安排、${w.todos.filter((t) => !t.done).length} 项未完成待办、${w.notes.length} 篇笔记、${w.resources.length} 项本地资料、${w.mailAccounts.length} 个邮箱账号。`
     );
   }
   private resourcePath(id: string, path: string) {
@@ -217,6 +240,43 @@ export class WorkbenchReader {
     signal.throwIfAborted();
     const args = JSON.parse(raw || '{}');
     const w = this.store.workspace;
+    if (name === 'propose_timetable_import') {
+      const input = schemas.propose_timetable_import.parse(args);
+      for (const course of input.courses) {
+        if (course.end < course.start) throw new Error('课程结束节次不能早于开始节次。');
+        if (course.weeks) parseWeeks(course.weeks);
+      }
+      if (input.firstMonday && new Date(input.firstMonday + 'T00:00:00Z').getUTCDay() !== 1)
+        throw new Error('第一周日期必须是周一。');
+      const proposal: TimetableProposal = {
+        id: randomUUID(),
+        timetable: {
+          sourceName: 'AI 识别课表',
+          sourcePath: '',
+          term: input.term,
+          firstMonday: input.firstMonday,
+          courses: input.courses.map((course) => ({ ...course, id: randomUUID() })),
+          unresolvedCourses: input.unresolvedCourses,
+          text: '',
+          warnings: [
+            '请逐条核对 AI 识别的课程、星期、节次和周次，并确认学期及首周周一日期后保存。',
+            ...input.unresolvedCourses.map(
+              (course) => `待确认课程「${course.name}」 ${course.reason}`,
+            ),
+          ],
+        },
+      };
+      return {
+        data: {
+          status: 'draft',
+          courseCount: input.courses.length,
+          unresolvedCourses: input.unresolvedCourses,
+          message: '课表草稿已准备好，用户可点击预览并保存。',
+        },
+        detail: '已准备 ' + input.courses.length + ' 条课程草稿',
+        timetableDrafts: [proposal],
+      };
+    }
     if (name === 'create_todo') {
       const input = schemas.create_todo.parse(args);
       const id = this.workspace.saveTodo({
@@ -400,7 +460,7 @@ export class WorkbenchReader {
         items = campusLinksFor(w.degree).filter(match);
         metadata = { degree: w.degree };
         source.kind = 'campus';
-        source.label = (w.degree === 'undergrad' ? '本科生' : '研究生') + '校园入口';
+        source.label = studentProfiles[w.degree].label + '校园入口';
       }
       return {
         data: {
@@ -455,58 +515,18 @@ export class WorkbenchReader {
       };
     }
     if (name === 'read_file') {
-      const { resourceId, path, page, offset, length } = schemas.read_file.parse(args);
+      const { resourceId, path, ...options } = schemas.read_file.parse(args);
       const target = this.resourcePath(resourceId, path);
-      const info = await stat(target.path);
-      if (!info.isFile()) throw new Error('请选择文件；文件夹请先列出目录。');
-      const extension = extname(target.path).toLowerCase();
-      if (info.size > (extension === '.pdf' ? 50 : 8) * 1024 * 1024)
-        throw new Error('文件过大：PDF 支持 50 MB 内，文本文件支持 8 MB 内。请拆分后添加。');
-      let data: object;
-      if (extension === '.pdf') {
-        const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-        const pdfRoot = dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json'));
-        const task = getDocument({
-          data: new Uint8Array(await readFile(target.path, { signal })),
-          useSystemFonts: true,
-          cMapUrl: join(pdfRoot, 'cmaps') + '/',
-          cMapPacked: true,
-          standardFontDataUrl: join(pdfRoot, 'standard_fonts') + '/',
-        });
-        const cancel = () => {
-          void task.destroy();
-        };
-        signal.addEventListener('abort', cancel, { once: true });
-        try {
-          const doc = await task.promise;
-          if (page > doc.numPages) throw new Error('PDF 只有 ' + doc.numPages + ' 页。');
-          const content = await (await doc.getPage(page)).getTextContent();
-          const text = content.items
-            .map((item) => ('str' in item ? item.str + (item.hasEOL ? '\n' : ' ') : ''))
-            .join('');
-          if (!text.trim())
-            throw new Error('这一页没有可提取的文字，可能是扫描图片；当前尚未接入 OCR。');
-          data = {
-            page,
-            totalPages: doc.numPages,
-            ...textChunk(text, offset, length),
-            nextPage: page < doc.numPages ? page + 1 : null,
-          };
-        } finally {
-          signal.removeEventListener('abort', cancel);
-          await task.destroy();
-        }
-      } else {
-        if (!textExtensions.has(extension))
-          throw new Error('暂不支持读取此格式。请添加 PDF、Markdown、UTF-8 文本或代码文件。');
-        data = textChunk(await readFile(target.path, { encoding: 'utf8', signal }), offset, length);
-      }
+      const content = await readFileContent(target.path, options, signal);
       signal.throwIfAborted();
       return {
-        data: { name: basename(target.path), ...data },
+        data: { name: basename(target.path), ...content.data },
+        images: content.images,
         source: { kind: 'resource', id: resourceId, path, label: path || target.resource.title },
         detail:
-          '已读取 ' + basename(target.path) + (extension === '.pdf' ? ` · 第 ${page} 页` : ''),
+          '已读取 ' +
+          basename(target.path) +
+          (extname(target.path).toLowerCase() === '.pdf' ? ` · 第 ${options.page} 页` : ''),
       };
     }
     if (name === 'list_mail') {

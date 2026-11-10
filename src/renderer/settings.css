@@ -4,6 +4,16 @@
   padding: 34px 38px 30px;
   background: var(--page);
 }
+.settings-editor .model-image-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+.settings-editor .model-image-option input {
+  width: auto;
+}
 .settings-page-heading {
   display: flex;
   align-items: flex-start;

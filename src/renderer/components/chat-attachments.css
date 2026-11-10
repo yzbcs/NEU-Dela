@@ -1,0 +1,85 @@
+.chat-attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.chat-attachment {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.chat-attachment-open {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.chat-attachment-open > svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.chat-attachment-open > span {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.chat-attachment-open small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-top: 3px;
+}
+.chat-attachment-remove {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 10px;
+}
+.composer > .chat-attachment-list {
+  margin: 2px 14px 10px;
+}
+.attach-files-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 7px;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.composer-model-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.composer-model-tools .model-select {
+  max-width: none;
+  flex: 1;
+}
+.send-area .send-button {
+  flex-shrink: 0;
+}
+.timetable-proposal {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+}
+.timetable-proposal p {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}

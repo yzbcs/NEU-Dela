@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { periodTimes, type Course, type TimetableImport } from '../shared/workspace';
 import { courseBlocks, courseWeeks } from './course-text';
+import { studentProfiles, type Degree } from '../shared/student-profile';
 
 export interface WebCell {
   text: string;
@@ -202,7 +203,7 @@ function parseGrid(cells: PlacedCell[]): Course[] {
   }
   return courses;
 }
-export function parseWebTimetable(pages: CoursePage[]): TimetableImport {
+export function parseWebTimetable(pages: CoursePage[], degree: Degree): TimetableImport {
   const courses: Course[] = [],
     texts: string[] = [];
   let sourceUrl = '',
@@ -242,7 +243,7 @@ export function parseWebTimetable(pages: CoursePage[]): TimetableImport {
     courses,
     text: texts.join('\n\n'),
     sourcePath: '',
-    sourceName: '研究生系统网页课表',
+    sourceName: studentProfiles[degree].sourceName,
     sourceUrl,
     term,
     warnings,

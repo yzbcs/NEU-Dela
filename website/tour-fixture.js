@@ -79,7 +79,7 @@
   const state = {
     theme: 'light', providers: [provider], chats: [],
     workspace: {
-      degree: 'graduate',
+      degree: 'graduate', degreeConfirmed: true,
       timetable: {
         term: '2026 秋季 · 演示周', firstMonday: '2026-11-09', sourcePath: '',
         sourceName: chapter >= 3 ? '2026秋季课表.pdf' : '', courses: chapter >= 3 ? [...imported] : [initialCourse],
@@ -150,6 +150,9 @@
       reply.state = 'complete';
       publish();
     },
+    chooseChatAttachments: async () => [],
+    discardChatAttachments: async () => {},
+    openChatAttachment: async () => {},
     workspace: {
       importTimetable: async () => clone({sourceName: '2026秋季课表.pdf', sourcePath: '', term: w.timetable.term, courses: imported, text: '', warnings: []}),
       saveTimetable: async table => { w.timetable = clone(table); publish(); },
@@ -175,8 +178,8 @@
       mailList: async () => clone(mailPage()),
       mailCached: async () => clone(mailPage()),
       mailRead: async () => { mail.seen = true; return clone(mail); },
-      setDegree: async degree => { w.degree = degree; publish(); },
-      getAppInfo: async () => ({version: '0.7.2', dataDirectory: '/演示工作台'}),
+      setDegree: async degree => { w.degree = degree; w.degreeConfirmed = true; publish(); },
+      getAppInfo: async () => ({version: '0.7.5', dataDirectory: '/演示工作台'}),
     },
   };
 })();

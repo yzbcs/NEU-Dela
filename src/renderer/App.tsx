@@ -12,7 +12,6 @@ import {
   GraduationCap,
   KeyRound,
   Mail,
-  MessageSquare,
   Plus,
   RefreshCw,
   Search,
@@ -29,6 +28,7 @@ import {
   LayoutDashboard,
   UserRound,
   Database,
+  Paperclip,
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -40,9 +40,11 @@ import type {
   Provider,
   WorkspaceSource,
   WorkspaceCreation,
+  ChatAttachment,
+  TimetableProposal,
 } from '../shared/types';
 import { SelectMenu } from './components/SelectMenu';
-import { emptyWorkspace, type Page } from '../shared/workspace';
+import { emptyWorkspace, type Page, type TimetableImport } from '../shared/workspace';
 import { TodosPage, TimetablePage, CampusPage } from './WorkspacePages';
 import { LibraryPage } from './LibraryPage';
 import { flushNoteEdits } from './components/useNoteEditor';
@@ -51,6 +53,10 @@ import { MailPage } from './MailPage';
 import { WorkspaceSearch } from './components/WorkspaceSearch';
 import { WorkspaceCreationCard } from './components/WorkspaceCreationCard';
 import { StartupScreen } from './components/StartupScreen';
+import { StudentOnboarding } from './components/StudentOnboarding';
+import { ChatAttachmentList } from './components/ChatAttachmentList';
+import { ChatHistory } from './components/ChatHistory';
+import { assistancePrompt, type AiAssistanceRequest } from '../shared/ai-assistance';
 import { SettingsPage } from './SettingsPage';
 import type { WorkspaceSearchResult } from '../shared/search';
 import appIcon from '../../assets/icon.png';
@@ -84,11 +90,13 @@ function Message({
   onSource,
   onOpenCreation,
   onUndoCreation,
+  onOpenTimetableDraft,
 }: {
   message: ChatMessage;
   onSource: (source: WorkspaceSource) => void;
   onOpenCreation: (creation: WorkspaceCreation) => void;
   onUndoCreation: (id: string) => Promise<void>;
+  onOpenTimetableDraft: (draft: TimetableProposal) => void;
 }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -105,6 +113,12 @@ function Message({
           {message.role === 'user' ? '你' : 'NEU-Dela'}
           {message.role === 'assistant' && <span>{message.model}</span>}
         </div>
+        <ChatAttachmentList
+          files={message.attachments ?? []}
+          onOpen={(file) =>
+            onSource({ kind: 'attachment', id: file.id, label: file.name, citation: 0 })
+          }
+        />
         {!!message.activity?.length && (
           <details className="read-activity" open={message.state === 'streaming'}>
             <summary>
@@ -165,6 +179,20 @@ function Message({
             ))}
           </div>
         )}
+        {message.timetableDrafts?.map((draft) => (
+          <section key={draft.id} className="timetable-proposal" data-timetable-proposal={draft.id}>
+            <strong>课表导入草稿 · {draft.timetable.courses.length} 条课程</strong>
+            {!!draft.timetable.unresolvedCourses?.length && (
+              <p>
+                另有 {draft.timetable.unresolvedCourses.length} 条课程待确认，预览中可核对原因。
+              </p>
+            )}
+            <p>{draft.timetable.term || '学期待补充'}。请核对课程、周次与学期后保存。</p>
+            <button className="secondary-button" onClick={() => onOpenTimetableDraft(draft)}>
+              预览并保存课表
+            </button>
+          </section>
+        ))}
         {message.error && (
           <div className="message-error" role="alert">
             {message.error}
@@ -175,15 +203,11 @@ function Message({
           <div className="message-state">回复未完成，可能已达到输出上限，可以继续提问。</div>
         )}
         {!!message.sources?.length && (
-          <div className="message-sources" aria-label="工作台参考来源">
-            <span>参考了 {message.sources.length} 项工作台内容</span>
+          <div className="message-sources" aria-label="参考来源">
+            <span>参考了 {message.sources.length} 项资料</span>
             <div>
               {message.sources.map((source) => (
-                <button
-                  key={source.citation}
-                  onClick={() => onSource(source)}
-                  title="查看工作台来源"
-                >
+                <button key={source.citation} onClick={() => onSource(source)} title="查看来源">
                   [{source.citation}] {source.label}
                   <ChevronRight size={11} />
                 </button>
@@ -254,18 +278,19 @@ function ChatModelPicker({
 }) {
   const [fetchingId, setFetchingId] = useState('');
   const [error, setError] = useState({ providerId: '', text: '' });
+  const lastModels = useRef(new Map<string, string>());
   const provider = providers.find((item) => item.id === providerId);
-  const options = providers.flatMap((item) => {
-    const models = new Map((item.models ?? []).map((available) => [available.id, available]));
-    if (!models.has(item.model)) models.set(item.model, { id: item.model, name: item.model });
-    if (item.id === providerId && model && !models.has(model))
-      models.set(model, { id: model, name: model });
-    return Array.from(models.values()).map((available) => ({
-      value: JSON.stringify([item.id, available.id]),
-      label: available.name || available.id,
-      group: item.name,
-    }));
-  });
+  useEffect(() => {
+    if (providerId && model) lastModels.current.set(providerId, model);
+  }, [providerId, model]);
+  const models = new Map((provider?.models ?? []).map((available) => [available.id, available]));
+  if (provider && !models.has(provider.model))
+    models.set(provider.model, { id: provider.model, name: provider.model });
+  if (model && !models.has(model)) models.set(model, { id: model, name: model });
+  const options = [...models.values()].map((available) => ({
+    value: available.id,
+    label: available.name || available.id,
+  }));
   async function refreshModels() {
     if (!provider || fetchingId === provider.id) return;
     setFetchingId(provider.id);
@@ -287,16 +312,25 @@ function ChatModelPicker({
   return (
     <div className="model-select">
       <span className="status-dot" />
-      {provider && <span className="model-service-name">{provider.name}</span>}
+      <SelectMenu
+        name="chat-provider"
+        label="切换供应商"
+        value={providerId}
+        options={providers.map((item) => ({ value: item.id, label: item.name }))}
+        onChange={(id) => {
+          const selected = providers.find((item) => item.id === id);
+          if (selected) onChange(id, lastModels.current.get(id) || selected.model);
+        }}
+        disabled={busy || !providers.length}
+        placement="top"
+        placeholder="选择供应商"
+      />
       <SelectMenu
         name="chat-model"
         label="切换模型"
-        value={JSON.stringify([providerId, model])}
+        value={model}
         options={options}
-        onChange={(value) => {
-          const [id, selectedModel] = JSON.parse(value);
-          onChange(id, selectedModel);
-        }}
+        onChange={(value) => onChange(providerId, value)}
         disabled={busy || !providers.length}
         searchable
         placement="top"
@@ -342,12 +376,18 @@ export function App() {
   const chatScroll = useRef<HTMLDivElement>(null);
   const returnScroll = useRef<{ chatId: string | null; top: number } | null>(null);
   const [prompt, setPrompt] = useState('');
-  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [choosingAttachments, setChoosingAttachments] = useState(false);
+  const [focusTimetableDraft, setFocusTimetableDraft] = useState<TimetableImport>();
+  const [notice, setNotice] = useState<{
+    text: string;
+    error?: boolean;
+    assist?: AiAssistanceRequest;
+  } | null>(null);
   const [pending, setPending] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [startupError, setStartupError] = useState<string | null>(null);
   const [notificationTodoId, setNotificationTodoId] = useState<string>();
-  const [query, setQuery] = useState('');
   const bottom = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -365,6 +405,7 @@ export function App() {
     setFocusLibrary(undefined);
     setFocusResource(undefined);
     setFocusChatMessageId(undefined);
+    setFocusTimetableDraft(undefined);
     setPage(next);
   }
   function openNote(id: string) {
@@ -455,6 +496,7 @@ export function App() {
   }
   useEffect(() => {
     function shortcut(event: KeyboardEvent) {
+      if (!state.workspace.degreeConfirmed) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && !event.altKey) {
         event.preventDefault();
         if (searchOpen) setSearchOpen(false);
@@ -463,7 +505,7 @@ export function App() {
     }
     document.addEventListener('keydown', shortcut);
     return () => document.removeEventListener('keydown', shortcut);
-  }, [loaded, searchOpen]);
+  }, [loaded, searchOpen, state.workspace.degreeConfirmed]);
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const update = () => {
@@ -536,7 +578,28 @@ export function App() {
   }, [chat?.messages.at(-1)?.text, activeId, settings, page, focusChatMessageId]);
 
   function fail(error: unknown) {
-    setNotice({ text: errorText(error), error: true });
+    const target =
+      page === 'timetable'
+        ? 'timetable'
+        : page === 'library'
+          ? 'notes'
+          : page === 'todos'
+            ? 'todos'
+            : null;
+    setNotice({
+      text: errorText(error),
+      error: true,
+      ...(target
+        ? {
+            assist: {
+              target,
+              operation: 'recover',
+              error: errorText(error),
+              source: '工作台操作',
+            } as AiAssistanceRequest,
+          }
+        : {}),
+    });
   }
   function openSettings(fromChat = false) {
     returnScroll.current =
@@ -552,12 +615,13 @@ export function App() {
   }
   async function send() {
     setFocusChatMessageId(undefined);
-    if (!prompt.trim() || busy) return;
+    if ((!prompt.trim() && !attachments.length) || busy || choosingAttachments) return;
     if (!provider) {
       openSettings(true);
       return;
     }
     const text = prompt;
+    const files = attachments;
     let id = activeId;
     try {
       await flushNoteEdits();
@@ -567,13 +631,49 @@ export function App() {
       }
       setPending((old) => [...old, id!]);
       setPrompt('');
-      await window.dola.send(id!, text);
+      setAttachments([]);
+      await window.dola.send(
+        id!,
+        text,
+        files.map((file) => file.id),
+      );
     } catch (error) {
-      setPrompt(text);
+      setPrompt((current) => current || text);
+      setAttachments((current) => [
+        ...files,
+        ...current.filter((file) => !files.some((old) => old.id === file.id)),
+      ]);
       fail(error);
     } finally {
       setPending((old) => old.filter((value) => value !== id));
     }
+  }
+  async function chooseAttachments() {
+    if (choosingAttachments || busy) return;
+    setChoosingAttachments(true);
+    try {
+      const files = await window.dola.chooseChatAttachments();
+      if (files.length + attachments.length > 6) {
+        await window.dola.discardChatAttachments(files.map((file) => file.id));
+        throw new Error('每条消息最多引用 6 个文件，请先移除部分文件。');
+      }
+      setAttachments((current) => [...current, ...files]);
+    } catch (error) {
+      fail(error);
+    } finally {
+      setChoosingAttachments(false);
+    }
+  }
+  function askAiToAssist(request: AiAssistanceRequest) {
+    const file = request.attachment;
+    void window.dola
+      .discardChatAttachments(attachments.filter((old) => old.id !== file?.id).map((old) => old.id))
+      .catch(fail);
+    setAttachments(file ? [file] : []);
+    setPrompt(assistancePrompt(request));
+    navigate('chat');
+    setActiveId(null);
+    setNotice(null);
   }
   async function removeChat(item: Chat) {
     try {
@@ -585,6 +685,10 @@ export function App() {
   }
 
   function openSource(source: WorkspaceSource) {
+    if (source.kind === 'attachment') {
+      if (source.id) void window.dola.openChatAttachment(source.id).catch(fail);
+      return;
+    }
     if (source.kind === 'note' && source.id) {
       if (!state.workspace.notes.some((note) => note.id === source.id)) {
         fail(new Error('这篇笔记已被删除，原读取记录仍保留在对话中。'));
@@ -610,6 +714,15 @@ export function App() {
       );
   }
   if (!loaded) return <StartupScreen error={startupError} onRetry={() => void loadWorkspace()} />;
+  if (!state.workspace.degreeConfirmed)
+    return (
+      <StudentOnboarding
+        onComplete={async (degree) => {
+          await window.dola.workspace.setDegree(degree);
+          setState(await window.dola.load());
+        }}
+      />
+    );
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -624,6 +737,8 @@ export function App() {
             setActiveId(null);
 
             setPrompt('');
+            void window.dola.discardChatAttachments(attachments.map((file) => file.id)).catch(fail);
+            setAttachments([]);
             composer.current?.focus();
           }}
         >
@@ -676,57 +791,19 @@ export function App() {
             );
           })}
         </nav>
-        <div className="history-heading">
-          <span>最近对话</span>
-          <span>{state.chats.length}</span>
-        </div>
-        {state.chats.length > 4 && (
-          <label className="history-search">
-            <Search size={14} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="查找对话"
-            />
-          </label>
-        )}
-        <div className="history">
-          {state.chats
-            .filter((c) => c.title.includes(query))
-            .map((item) => (
-              <div
-                key={item.id}
-                className={'history-row ' + (!settings && activeId === item.id ? 'current' : '')}
-              >
-                <button
-                  onClick={() => {
-                    setActiveId(item.id);
-                    setFocusChatMessageId(undefined);
-                    setSettings(null);
-                    setPage('chat');
-                    if (item.id !== activeId) setPrompt('');
-                  }}
-                >
-                  <MessageSquare size={15} />
-                  <span>{item.title}</span>
-                </button>
-                <button
-                  className="history-delete"
-                  aria-label={'删除对话 ' + item.title}
-                  onClick={() => void removeChat(item)}
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))}
-          {!state.chats.length && (
-            <p className="history-empty">
-              从一个问题开始，
-              <br />
-              把思考留在这里。
-            </p>
-          )}
-        </div>
+        <ChatHistory
+          chats={state.chats}
+          providers={state.providers}
+          activeId={!settings && page === 'chat' ? activeId : null}
+          onOpen={(item) => {
+            setActiveId(item.id);
+            setFocusChatMessageId(undefined);
+            setSettings(null);
+            setPage('chat');
+            if (item.id !== activeId) setPrompt('');
+          }}
+          onRemove={(item) => void removeChat(item)}
+        />
         <div className="sidebar-bottom">
           <div className="appearance">
             <span>外观</span>
@@ -807,6 +884,7 @@ export function App() {
               onError={fail}
               navigate={navigate}
               focusTodoId={focusTodoId}
+              onAskAi={askAiToAssist}
             />
           ) : page === 'timetable' ? (
             <TimetablePage
@@ -816,6 +894,8 @@ export function App() {
               navigate={navigate}
               focusCourseId={focusCourseId}
               focusCourseDate={focusCourseDate}
+              importDraft={focusTimetableDraft}
+              onAskAi={askAiToAssist}
               onOpenNote={openNote}
               onOpenLibrary={(category, tab) => {
                 navigate('library');
@@ -832,6 +912,7 @@ export function App() {
             />
           ) : page === 'library' ? (
             <LibraryPage
+              onAskAi={askAiToAssist}
               key={focusRequest}
               workspace={state.workspace}
               onError={fail}
@@ -941,6 +1022,11 @@ export function App() {
                       key={message.id}
                       message={message}
                       onSource={openSource}
+                      onOpenTimetableDraft={(draft) => {
+                        navigate('timetable');
+                        setFocusTimetableDraft(draft.timetable);
+                        setFocusRequest((value) => value + 1);
+                      }}
                       onOpenCreation={openCreation}
                       onUndoCreation={async (id) => {
                         await flushNoteEdits();
@@ -954,6 +1040,19 @@ export function App() {
             </div>
             <div className="composer-area">
               <div className="composer">
+                <ChatAttachmentList
+                  files={attachments}
+                  disabled={busy || choosingAttachments}
+                  onOpen={(file) => void window.dola.openChatAttachment(file.id).catch(fail)}
+                  onRemove={(file) =>
+                    void window.dola
+                      .discardChatAttachments([file.id])
+                      .then(() =>
+                        setAttachments((current) => current.filter((item) => item.id !== file.id)),
+                      )
+                      .catch(fail)
+                  }
+                />
                 <textarea
                   ref={composer}
                   name="prompt"
@@ -970,25 +1069,40 @@ export function App() {
                   }}
                 />
                 <div className="composer-toolbar">
-                  <ChatModelPicker
-                    providers={state.providers}
-                    providerId={providerId}
-                    model={model}
-                    busy={busy}
-                    onChange={(selectedProvider, selectedModel) => {
-                      if (chat)
-                        void window.dola
-                          .selectProvider(chat.id, selectedProvider, selectedModel)
-                          .catch(fail);
-                      else setNewSelection({ providerId: selectedProvider, model: selectedModel });
-                    }}
-                  />
+                  <div className="composer-model-tools">
+                    <button
+                      type="button"
+                      className="attach-files-button"
+                      aria-label="添加引用文件"
+                      disabled={busy || choosingAttachments || attachments.length >= 6}
+                      onClick={() => void chooseAttachments()}
+                    >
+                      <Paperclip size={16} />
+                      {choosingAttachments ? '正在添加' : '引用文件'}
+                    </button>
+                    <ChatModelPicker
+                      providers={state.providers}
+                      providerId={providerId}
+                      model={model}
+                      busy={busy}
+                      onChange={(selectedProvider, selectedModel) => {
+                        if (chat)
+                          void window.dola
+                            .selectProvider(chat.id, selectedProvider, selectedModel)
+                            .catch(fail);
+                        else
+                          setNewSelection({ providerId: selectedProvider, model: selectedModel });
+                      }}
+                    />
+                  </div>
                   <div className="send-area">
                     <span>{busy ? '正在生成回复' : 'Enter 发送 · Shift + Enter 换行'}</span>
                     <button
                       className={busy ? 'send-button stop' : 'send-button'}
                       aria-label={busy ? '停止生成' : '发送消息'}
-                      disabled={!busy && !prompt.trim()}
+                      disabled={
+                        choosingAttachments || (!busy && !prompt.trim() && !attachments.length)
+                      }
                       onClick={() => {
                         if (busy && activeId) void window.dola.stop(activeId).catch(fail);
                         else void send();
@@ -1001,7 +1115,7 @@ export function App() {
               </div>
               <p className="composer-footnote">
                 <ShieldCheck size={12} />
-                AI 会按问题使用工作台内容，相关内容交给当前模型服务；保存结果可查看和撤销。
+                发送后，引用文件与相关工作台内容会按需交给当前模型服务。支持 PDF、图片与文字文件。
               </p>
             </div>
           </>
@@ -1021,6 +1135,12 @@ export function App() {
         >
           {notice.error ? <CircleHelp size={18} /> : <Check size={18} />}
           <span>{notice.text}</span>
+          {notice.assist && (
+            <button className="toast-ai-assist" onClick={() => askAiToAssist(notice.assist!)}>
+              <Sparkles size={14} />
+              交给 AI 继续
+            </button>
+          )}
           <button aria-label="关闭提示" onClick={() => setNotice(null)}>
             <X size={15} />
           </button>

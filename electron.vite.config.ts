@@ -11,7 +11,7 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve('src/preload/index.ts'),
-          graduate: resolve('src/preload/graduate.ts'),
+          timetable: resolve('src/preload/timetable.ts'),
         },
         output: { format: 'cjs', entryFileNames: '[name].cjs' },
       },

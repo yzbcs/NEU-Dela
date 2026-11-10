@@ -11,6 +11,7 @@ import {
   ExternalLink,
   FileText,
   FolderOpen,
+  GraduationCap,
   HardDrive,
   Info,
   Mail,
@@ -32,12 +33,15 @@ import { Modal } from './WorkspacePages';
 import { ProviderSettingsForm } from './components/ProviderSettingsForm';
 import { MailSettingsForm } from './components/MailSettingsForm';
 import { TermSettingsForm } from './components/TermSettingsForm';
+import { StudentTypeChoices } from './components/StudentTypeChoices';
+import { studentProfiles } from '../shared/student-profile';
 import appIcon from '../../assets/icon.png';
 import './settings.css';
 
 type SettingsSection =
   | 'overview'
   | 'appearance'
+  | 'student-type'
   | 'models'
   | 'mail'
   | 'resources'
@@ -49,6 +53,7 @@ type SettingsSection =
 const labels: Record<SettingsSection, string> = {
   overview: '设置',
   appearance: '外观',
+  'student-type': '学生类型',
   models: '模型服务',
   mail: '邮箱账号',
   resources: '本地资料',
@@ -216,6 +221,7 @@ export function SettingsPage({
             <h2>通用</h2>
             <div className="settings-overview-list">
               {row('appearance', Palette, '外观', themeLabels[state.theme])}
+              {row('student-type', GraduationCap, '学生类型', studentProfiles[w.degree].label)}
             </div>
           </section>
           <section className="settings-overview-group">
@@ -255,6 +261,22 @@ export function SettingsPage({
                 info ? `版本 ${info.version}` : infoError ? '版本信息读取失败' : '正在读取版本',
               )}
             </div>
+          </section>
+        </div>
+      )}
+      {page === 'student-type' && (
+        <div className="settings-detail">
+          <section className="settings-card">
+            <h2>整个工作台使用同一份学生类型</h2>
+            <StudentTypeChoices
+              value={w.degree}
+              disabled={busy}
+              onChange={(degree) => void run(() => workspace().setDegree(degree))}
+            />
+            <p className="settings-hint">
+              选择后立即用于课表网页导入、校园服务与 AI
+              助手的身份上下文。已有课程、笔记、待办与资料保留。
+            </p>
           </section>
         </div>
       )}

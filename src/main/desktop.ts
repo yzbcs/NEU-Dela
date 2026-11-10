@@ -8,8 +8,10 @@ import type { WorkspaceApi } from '../shared/workspace';
 import { WorkspaceService } from './workspace';
 import { MailService } from './mail';
 import { readTimetable, timetableIcs } from './timetable';
-import { openGraduateImport } from './graduate-window';
+import { openWebTimetableImport } from './web-timetable-window';
 import { LocalFiles } from './local-files';
+import { ChatAttachments } from './chat-attachments';
+import { studentProfiles } from '../shared/student-profile';
 
 export function desktopApi(
   store: Store,
@@ -36,6 +38,7 @@ export function desktopApi(
   );
   const mail = new MailService(store, changed);
   const localFiles = new LocalFiles(store);
+  const chatAttachments = new ChatAttachments(store);
   const id = (value: string) => z.string().uuid().parse(value);
   const url = (value: string) => {
     const parsed = new URL(value);
@@ -71,12 +74,36 @@ export function desktopApi(
       mkdirSync(directory, { recursive: true });
       const destination = join(directory, randomUUID() + '.pdf');
       copyFileSync(original, destination);
-      const draft = await readTimetable(destination);
-      draft.sourceName = basename(original);
-      return draft;
+      try {
+        const draft = await readTimetable(destination);
+        draft.sourceName = basename(original);
+        if (!draft.courses.length) {
+          draft.aiAttachment = await chatAttachments.addFile(destination, basename(original));
+          draft.recognitionError = draft.warnings[0];
+        }
+        return draft;
+      } catch (error) {
+        return {
+          sourcePath: destination,
+          sourceName: basename(original),
+          courses: [],
+          text: '',
+          warnings: [],
+          recognitionError: error instanceof Error ? error.message : String(error),
+          aiAttachment: await chatAttachments.addFile(destination, basename(original)),
+        };
+      }
     },
-    async importGraduateTimetable() {
-      return openGraduateImport(store.dataDirectory, showWindow);
+    async importWebTimetable() {
+      if (!store.workspace.degreeConfirmed) throw new Error('请先选择本科生或研究生身份。');
+      const degree = store.workspace.degree;
+      const draft = await openWebTimetableImport(degree, store.dataDirectory, showWindow);
+      if (draft?.recognitionError)
+        draft.aiAttachment = await chatAttachments.addFile(
+          join(store.dataDirectory, 'timetables', degree + '-webpage.json'),
+          studentProfiles[degree].label + '课表页面.json',
+        );
+      return draft;
     },
     async saveTimetable(input) {
       service.saveTimetable(input);
@@ -194,8 +221,7 @@ export function desktopApi(
       await shell.openExternal(url(value));
     },
     async setDegree(value) {
-      store.workspace.degree = z.enum(['undergrad', 'graduate']).parse(value);
-      service.save();
+      service.setDegree(value);
     },
     async saveMailAccount(input) {
       return mail.save(input);

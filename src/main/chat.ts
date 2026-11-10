@@ -23,15 +23,19 @@ import {
   normalizeCreationArguments,
   type WorkbenchResult,
 } from './workbench';
+import { ChatAttachments, attachmentReadTool } from './chat-attachments';
+import { chatTitleVersion, summarizeChatTitle } from '../shared/chat-title';
 
 export class ChatService {
   private running = new Map<string, AbortController>();
   private workbench: WorkbenchReader;
+  readonly attachments: ChatAttachments;
   constructor(
     readonly store: Store,
     private publish: (state: AppState) => void,
   ) {
     this.workbench = new WorkbenchReader(store);
+    this.attachments = new ChatAttachments(store);
   }
   changed() {
     this.publish(this.store.snapshot());
@@ -40,19 +44,26 @@ export class ChatService {
     return this.running.has(chatId);
   }
 
-  async send(chatId: string, text: string): Promise<void> {
+  async send(chatId: string, text: string, attachmentIds: string[] = []): Promise<void> {
     const chat = this.store.chat(chatId);
     if (this.busy(chatId)) throw new Error('请先等待当前回复结束或停止生成');
-    if (!text.trim()) throw new Error('请输入消息');
+    if (!text.trim() && !attachmentIds.length) throw new Error('请输入消息或添加引用文件');
+    if (attachmentIds.length > 6) throw new Error('每条消息最多引用 6 个文件。');
     if (!chat.providerId) throw new Error('请先添加并选择模型服务');
     const saved = this.store.provider(chat.providerId);
     const provider = { ...saved, model: chat.model || saved.model };
     const key = this.store.key(provider.id);
+    const attachments = await Promise.all(
+      [...new Set(attachmentIds)].map(async (id) => (await this.attachments.get(id)).metadata),
+    );
+    this.store.chat(chatId);
+    if (this.busy(chatId)) throw new Error('请先等待当前回复结束或停止生成');
     const now = new Date().toISOString();
     const user: ChatMessage = {
       id: randomUUID(),
       role: 'user',
-      text: text.trim(),
+      text: text.trim() || '请阅读引用文件并帮我整理内容。',
+      ...(attachments.length ? { attachments } : {}),
       createdAt: now,
       state: 'complete',
     };
@@ -65,7 +76,10 @@ export class ChatService {
       model: provider.model,
       providerName: provider.name,
     };
-    if (!chat.messages.length) chat.title = Array.from(user.text).slice(0, 28).join('');
+    if (!chat.messages.length) {
+      chat.title = summarizeChatTitle([user]);
+      chat.titleSummaryVersion = chatTitleVersion;
+    }
     const history = [...chat.messages];
     chat.messages.push(user);
     chat.messages.push(reply);
@@ -84,15 +98,28 @@ export class ChatService {
     const abortSession = () => void session?.abort();
     controller.signal.addEventListener('abort', abortSession, { once: true });
     const completedWrites: { name: string; args: unknown; result: WorkbenchResult }[] = [];
-    const tools: ToolDefinition[] = workbenchTools.map((tool) => ({
+    const allowedFiles = new Map(
+      chat.messages.flatMap((message) =>
+        (message.attachments ?? []).map((file) => [file.id, file] as const),
+      ),
+    );
+    const maxToolCalls = allowedFiles.size ? 24 : 12;
+    const maxToolRounds = allowedFiles.size ? 12 : 6;
+    const tools: ToolDefinition[] = [...workbenchTools, attachmentReadTool].map((tool) => ({
       ...tool,
       label: activityLabel(tool.name),
       parameters: tool.parameters as ToolDefinition['parameters'],
       executionMode: 'sequential',
       execute: async (_toolCallId, params, signal) => {
-        if (++toolCalls > 12) throw new Error('本次已执行 12 项工具操作，请基于已有结果回答。');
+        if (++toolCalls > maxToolCalls)
+          throw new Error(`本次已执行 ${maxToolCalls} 项工具操作，请基于已有结果回答。`);
         const raw = JSON.stringify(params);
-        const creates = ['create_todo', 'add_courses', 'create_note'].includes(tool.name);
+        const creates = [
+          'create_todo',
+          'add_courses',
+          'create_note',
+          'propose_timetable_import',
+        ].includes(tool.name);
         const args = creates ? normalizeCreationArguments(tool.name, raw) : undefined;
         const previous = creates
           ? completedWrites.find(
@@ -100,14 +127,30 @@ export class ChatService {
             )
           : undefined;
         try {
-          const result =
+          const result: WorkbenchResult =
             previous?.result ??
-            (await this.workbench.execute(tool.name, raw, signal ?? controller.signal));
+            (tool.name === 'read_chat_attachment'
+              ? await this.attachments.read(
+                  params,
+                  new Set(allowedFiles.keys()),
+                  provider.supportsImages !== false,
+                  signal ?? controller.signal,
+                )
+              : await this.workbench.execute(tool.name, raw, signal ?? controller.signal));
+          if (result.images?.length && provider.supportsImages === false)
+            throw new Error(
+              '当前模型未开启图片理解，请在模型服务中选择支持图片的模型并开启图片理解。',
+            );
           if (creates && !previous) completedWrites.push({ name: tool.name, args, result });
           if (result.creations?.length && !previous) {
             reply.creations ??= [];
             reply.creations.push(...result.creations);
             // Persist the real write before Pi requests the model's continuation.
+            this.store.saveChats();
+          }
+          if (result.timetableDrafts?.length && !previous) {
+            reply.timetableDrafts ??= [];
+            reply.timetableDrafts.push(...result.timetableDrafts);
             this.store.saveChats();
           }
           let citation: string | undefined;
@@ -130,7 +173,7 @@ export class ChatService {
           return {
             content: [
               {
-                type: 'text',
+                type: 'text' as const,
                 text: this.store.redact(
                   JSON.stringify({
                     citation,
@@ -144,6 +187,7 @@ export class ChatService {
                   }),
                 ),
               },
+              ...(result.images ?? []),
             ],
             details: { detail: this.store.redact(result.detail) },
           };
@@ -162,7 +206,11 @@ export class ChatService {
         provider,
         apiKey: key,
         tools,
-        workspaceContext: this.workbench.summary(),
+        workspaceContext:
+          this.workbench.summary() +
+          `\n当前回合模型服务为${provider.name}，模型为${provider.model}，应用侧图片输入${provider.supportsImages !== false ? '已开启，可用 mode=image 读取图片或 PDF 页面' : '已关闭'}。这是本轮实际配置，历史回合的能力报错不能代替当前状态。当前可用工具为${tools.map((tool) => tool.name).join('、')}。` +
+          '\n本对话引用文件目录（文件名是资料）' +
+          JSON.stringify([...allowedFiles.values()]),
       });
       controller.signal.throwIfAborted();
       session.subscribe((event) => {
@@ -188,7 +236,10 @@ export class ChatService {
           };
           if (message.stopReason === 'error')
             reply.error = describeError(new Error(message.errorMessage || '模型请求失败'), key);
-          if (message.content.some((part) => part.type === 'toolCall') && toolRounds >= 6) {
+          if (
+            message.content.some((part) => part.type === 'toolCall') &&
+            toolRounds >= maxToolRounds
+          ) {
             limitError = new Error('模型仍要求调用工具，但已达到本次上限，请缩小问题范围后再试。');
             session!.agent.abort();
           }
@@ -255,7 +306,7 @@ export class ChatService {
       if (controller.signal.aborted || lastStopReason === 'aborted') reply.state = 'stopped';
       else if (lastStopReason === 'error') reply.state = 'error';
       else if (lastStopReason === 'length') reply.state = 'incomplete';
-      else if (!reply.text && !reply.creations?.length)
+      else if (!reply.text && !reply.creations?.length && !reply.timetableDrafts?.length)
         throw new Error('模型没有返回文字，请检查模型 ID 或接口类型。');
       else reply.state = 'complete';
       if (reply.state === 'error' && /(?:tool|function.?call)/i.test(reply.error ?? ''))
@@ -304,14 +355,17 @@ export class ChatService {
       );
     this.changed();
   }
-  removeChat(chatId: string) {
-    this.store.chat(chatId);
+  async removeChat(chatId: string) {
+    const attachments = this.store
+      .chat(chatId)
+      .messages.flatMap((message) => message.attachments?.map((file) => file.id) ?? []);
     if (this.busy(chatId)) throw new Error('请先停止生成再删除会话');
     const sessionPath = savedSessionPath(this.store, chatId);
     if (sessionPath) rmSync(sessionPath);
     this.store.chats = this.store.chats.filter((chat) => chat.id !== chatId);
     this.store.saveChats();
     this.changed();
+    await this.attachments.discard(attachments);
   }
 
   stopAll() {

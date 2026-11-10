@@ -1,3 +1,5 @@
+import { studentProfiles } from './student-profile';
+
 export type Page = 'home' | 'todos' | 'chat' | 'timetable' | 'mail' | 'library' | 'campus';
 export interface Todo {
   id: string;
@@ -34,6 +36,10 @@ export interface Timetable {
   courses: Course[];
 }
 export interface TimetableImport {
+  unresolvedCourses?: { name: string; reason: string }[];
+  firstMonday?: string;
+  aiAttachment?: import('./types').ChatAttachment;
+  recognitionError?: string;
   sourcePath: string;
   sourceName: string;
   sourceUrl?: string;
@@ -134,6 +140,7 @@ export interface Workspace {
   resources: Resource[];
   mailAccounts: MailAccount[];
   degree: 'undergrad' | 'graduate';
+  degreeConfirmed: boolean;
 }
 export function emptyWorkspace(): Workspace {
   return {
@@ -144,6 +151,7 @@ export function emptyWorkspace(): Workspace {
     resources: [],
     mailAccounts: [],
     degree: 'undergrad',
+    degreeConfirmed: false,
   };
 }
 export interface WorkspaceApi {
@@ -153,7 +161,7 @@ export interface WorkspaceApi {
   removeTodo(id: string): Promise<void>;
   testNotification(): Promise<void>;
   importTimetable(): Promise<TimetableImport | null>;
-  importGraduateTimetable(): Promise<TimetableImport | null>;
+  importWebTimetable(): Promise<TimetableImport | null>;
   saveTimetable(input: Timetable): Promise<void>;
   updateTimetableSettings(input: TimetableSettings): Promise<void>;
   exportTimetable(): Promise<string | null>;
@@ -274,7 +282,7 @@ export const campusLinks: {
   {
     title: '本科教务系统',
     subtitle: '本科课程、选课与成绩；校外可能需要学校 VPN',
-    url: 'https://jwxt.neu.edu.cn',
+    url: studentProfiles.undergrad.portal,
     audience: 'undergrad',
   },
   {

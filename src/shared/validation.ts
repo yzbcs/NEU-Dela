@@ -25,6 +25,7 @@ export const providerInput = providerConnectionInput.extend({
   name: z.string().trim().min(1, '请填写服务名称').max(80),
   model: z.string().trim().min(1, '请填写模型 ID').max(200),
   models: z.array(z.object({ id: z.string().min(1), name: z.string() })).optional(),
+  supportsImages: z.boolean().default(true),
 });
 
 /** 设置页支持服务根地址、/v1 地址及完整端点；统一成各官方 SDK 所需的 baseURL。 */

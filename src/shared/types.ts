@@ -8,6 +8,7 @@ export interface Provider {
   baseUrl: string;
   model: string;
   models?: ModelOption[];
+  supportsImages?: boolean;
   hasKey: boolean;
 }
 
@@ -24,7 +25,7 @@ export interface ModelOption {
 }
 
 export interface WorkspaceSource {
-  kind: 'timetable' | 'todos' | 'note' | 'resource' | 'mail' | 'campus' | 'overview';
+  kind: 'timetable' | 'todos' | 'note' | 'resource' | 'mail' | 'campus' | 'overview' | 'attachment';
   id?: string;
   path?: string;
   label: string;
@@ -60,11 +61,25 @@ export interface ChatMessage {
   sources?: WorkspaceSource[];
   activity?: ReadActivity[];
   creations?: WorkspaceCreation[];
+  attachments?: ChatAttachment[];
+  timetableDrafts?: TimetableProposal[];
+}
+
+export interface ChatAttachment {
+  id: string;
+  name: string;
+  kind: 'pdf' | 'text' | 'image';
+  size: number;
+}
+export interface TimetableProposal {
+  id: string;
+  timetable: import('./workspace').TimetableImport;
 }
 
 export interface Chat {
   id: string;
   title: string;
+  titleSummaryVersion?: number;
   providerId: string | null;
   model: string;
   messages: ChatMessage[];
@@ -91,7 +106,10 @@ export interface DolaApi {
   createChat(providerId?: string, model?: string): Promise<string>;
   selectProvider(chatId: string, providerId: string, model?: string): Promise<void>;
   removeChat(id: string): Promise<void>;
-  send(chatId: string, text: string): Promise<void>;
+  send(chatId: string, text: string, attachmentIds?: string[]): Promise<void>;
+  chooseChatAttachments(): Promise<ChatAttachment[]>;
+  discardChatAttachments(ids: string[]): Promise<void>;
+  openChatAttachment(id: string): Promise<void>;
   stop(chatId: string): Promise<void>;
   undoCreation(chatId: string, messageId: string, creationId: string): Promise<void>;
   onOpenTodo(listener: (id: string) => void): () => void;

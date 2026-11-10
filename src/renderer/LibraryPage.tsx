@@ -26,6 +26,7 @@ import { SelectMenu } from './components/SelectMenu';
 import { useNoteEditor } from './components/useNoteEditor';
 import { NoteMarkdown, formatNoteSelection } from './components/NoteMarkdown';
 import { LocalFilesPane } from './LocalFilesPane';
+import type { AiAssistanceRequest } from '../shared/ai-assistance';
 const api = () => window.dola.workspace;
 function noteTime(value: string) {
   return new Date(value).toLocaleString('zh-CN', {
@@ -46,12 +47,14 @@ export function LibraryPage({
   focusLibrary,
   focusResource,
   onAskFile,
+  onAskAi,
 }: PageProps & {
   focusNoteId?: string;
   onAskNote: (note: Note) => void;
   focusLibrary?: { category: string; tab: 'notes' | 'files' };
   focusResource?: { resourceId: string; path: string };
   onAskFile: (file: { resourceId: string; path: string; title: string }) => void;
+  onAskAi?: (request: AiAssistanceRequest) => void;
 }) {
   const [tab, setTab] = useState(() =>
     localStorage.getItem('dola-library-tab') === 'files' ? 'files' : 'notes',
@@ -220,6 +223,26 @@ export function LibraryPage({
           <Plus size={15} />
           新笔记
         </button>
+        {onAskAi && (
+          <button
+            className="secondary-button"
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                await editor.flush();
+                onAskAi({
+                  target: 'notes',
+                  operation: 'import',
+                  source: '笔记导入',
+                  category: activeBook,
+                });
+              })
+            }
+          >
+            <Sparkles size={15} />
+            AI 导入笔记
+          </button>
+        )}
       </PageHeader>
       <div className="library-toolbar">
         <div className="segment-tabs">

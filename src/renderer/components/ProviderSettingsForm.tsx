@@ -49,6 +49,7 @@ export function ProviderSettingsForm({
       baseUrl: draft.baseUrl,
       model: draft.model,
       models,
+      supportsImages: draft.supportsImages ?? true,
       apiKey: draft.apiKey || undefined,
     };
   }
@@ -254,6 +255,14 @@ export function ProviderSettingsForm({
             </div>
           )}
         </div>
+        <label className="model-image-option">
+          <input
+            type="checkbox"
+            checked={draft.supportsImages ?? true}
+            onChange={(event) => update('supportsImages', event.target.checked)}
+          />
+          允许向此服务发送图片（用于图片和扫描 PDF）
+        </label>
         {status && (
           <p className="settings-result model-notice" role="status">
             {status}

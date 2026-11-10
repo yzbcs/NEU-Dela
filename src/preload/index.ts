@@ -9,7 +9,7 @@ const workspaceMethods: (keyof WorkspaceApi)[] = [
   'removeTodo',
   'testNotification',
   'importTimetable',
-  'importGraduateTimetable',
+  'importWebTimetable',
   'saveTimetable',
   'updateTimetableSettings',
   'exportTimetable',
@@ -64,7 +64,12 @@ contextBridge.exposeInMainWorld('dola', {
   selectProvider: (chatId: string, providerId: string, model?: string) =>
     ipcRenderer.invoke('dola:chat-provider', chatId, providerId, model),
   removeChat: (id: string) => ipcRenderer.invoke('dola:chat-remove', id),
-  send: (id: string, text: string) => ipcRenderer.invoke('dola:chat-send', id, text),
+  send: (id: string, text: string, attachments?: string[]) =>
+    ipcRenderer.invoke('dola:chat-send', id, text, attachments),
+  chooseChatAttachments: () => ipcRenderer.invoke('dola:chat-attachments-choose'),
+  discardChatAttachments: (ids: string[]) =>
+    ipcRenderer.invoke('dola:chat-attachments-discard', ids),
+  openChatAttachment: (id: string) => ipcRenderer.invoke('dola:chat-attachment-open', id),
   stop: (id: string) => ipcRenderer.invoke('dola:chat-stop', id),
   undoCreation: (chatId: string, messageId: string, creationId: string) =>
     ipcRenderer.invoke('dola:chat-undo-creation', chatId, messageId, creationId),

@@ -18,11 +18,14 @@ import {
   CalendarDays,
   Settings2,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { SelectMenu } from './components/SelectMenu';
 import { TodoCompletionBar, useTodoCompletion } from './components/TodoCompletion';
 import { courseConflicts } from '../shared/agenda';
 import './workspace-creations.css';
+import { studentProfiles } from '../shared/student-profile';
+import type { AiAssistanceRequest } from '../shared/ai-assistance';
 import {
   addDays,
   campusLinksFor,
@@ -35,6 +38,7 @@ import {
   type Course,
   type Page,
   type Timetable,
+  type TimetableImport,
   type Todo,
   type TodoInput,
   type Workspace,
@@ -343,7 +347,8 @@ export function TodosPage({
   onError,
   navigate,
   focusTodoId,
-}: PageProps & { focusTodoId?: string }) {
+  onAskAi,
+}: PageProps & { focusTodoId?: string; onAskAi?: (request: AiAssistanceRequest) => void }) {
   const times = workspace.timetable.periods ?? periodTimes;
   const colors = courseColors(workspace.timetable.courses);
   const [editor, setEditor] = useState<Todo | null | undefined>(undefined);
@@ -405,6 +410,15 @@ export function TodosPage({
           <Bell size={15} />
           测试提醒
         </button>
+        {onAskAi && (
+          <button
+            className="secondary-button"
+            onClick={() => onAskAi({ target: 'todos', operation: 'import', source: '便利贴导入' })}
+          >
+            <Sparkles size={15} />
+            AI 导入便利贴
+          </button>
+        )}
         <button className="primary-button" onClick={() => setEditor(null)}>
           <Plus size={16} />
           新便利贴
@@ -596,11 +610,15 @@ export function TimetablePage({
   focusCourseDate,
   onOpenNote,
   onOpenLibrary,
+  importDraft,
+  onAskAi,
 }: PageProps & {
   focusCourseId?: string;
   focusCourseDate?: string;
   onOpenNote: (id: string) => void;
   onOpenLibrary: (category: string, tab: 'notes' | 'files') => void;
+  importDraft?: TimetableImport;
+  onAskAi: (request: AiAssistanceRequest) => void;
 }) {
   const table = workspace.timetable;
   const colors = courseColors(table.courses);
@@ -611,6 +629,28 @@ export function TimetablePage({
   const [rawText, setRawText] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState<'pdf' | 'web' | null>(null);
+  const [failedImport, setFailedImport] = useState<TimetableImport | null>(null);
+  function reviewImport(imported: TimetableImport) {
+    setDraft({
+      ...table,
+      sourceName: imported.sourceName,
+      sourcePath: imported.sourcePath,
+      sourceUrl: imported.sourceUrl,
+      term: imported.term || table.term,
+      firstMonday:
+        imported.firstMonday ??
+        (imported.term && imported.term !== table.term ? '' : table.firstMonday),
+      courses: imported.courses,
+    });
+    setWarnings([
+      ...imported.warnings,
+      ...(table.courses.length ? ['确认保存会替换当前整张课表，请核对课程是否完整。'] : []),
+    ]);
+    setRawText(imported.text);
+  }
+  useEffect(() => {
+    if (importDraft) reviewImport(importDraft);
+  }, [importDraft]);
   const current = weekAt(table.firstMonday);
   const [week, setWeek] = useState(Math.max(1, Math.min(60, current || 1)));
   const [detail, setDetail] = useState<Course | null>(null);
@@ -665,19 +705,13 @@ export function TimetablePage({
     setLoading(kind);
     try {
       const imported =
-        kind === 'web' ? await api().importGraduateTimetable() : await api().importTimetable();
+        kind === 'web' ? await api().importWebTimetable() : await api().importTimetable();
       if (imported) {
-        setDraft({
-          ...table,
-          sourceName: imported.sourceName,
-          sourcePath: imported.sourcePath,
-          sourceUrl: imported.sourceUrl,
-          term: imported.term || table.term,
-          firstMonday: imported.term && imported.term !== table.term ? '' : table.firstMonday,
-          courses: imported.courses,
-        });
-        setWarnings(imported.warnings);
-        setRawText(imported.text);
+        if (imported.recognitionError) setFailedImport(imported);
+        else {
+          setFailedImport(null);
+          reviewImport(imported);
+        }
       }
     } catch (e) {
       onError(e);
@@ -737,7 +771,9 @@ export function TimetablePage({
           onClick={() => void importCourses('web')}
         >
           <ExternalLink size={15} />
-          {loading === 'web' ? '等待网页导入' : '网页导入'}
+          {loading === 'web'
+            ? '等待网页导入'
+            : studentProfiles[workspace.degree].label + '网页导入'}
         </button>
         <button
           className="primary-button"
@@ -747,7 +783,54 @@ export function TimetablePage({
           <Upload size={15} />
           {loading === 'pdf' ? '正在读取 PDF' : '导入 PDF'}
         </button>
+        <button
+          className="secondary-button"
+          disabled={loading !== null}
+          onClick={() =>
+            onAskAi({ target: 'timetable', operation: 'import', source: '课表页 AI 导入' })
+          }
+        >
+          <Sparkles size={15} />
+          AI 导入
+        </button>
       </PageHeader>
+      {failedImport && (
+        <div className="inline-info" role="status">
+          <p>
+            《{failedImport.sourceName}》尚未识别出课表。{failedImport.recognitionError}
+          </p>
+          {failedImport.aiAttachment && (
+            <button
+              className="secondary-button"
+              onClick={() => {
+                onAskAi({
+                  target: 'timetable',
+                  operation: 'import',
+                  source:
+                    failedImport.aiAttachment?.kind === 'pdf' ? 'PDF 课表导入' : '网页课表读取',
+                  error: failedImport.recognitionError,
+                  attachment: failedImport.aiAttachment,
+                });
+                setFailedImport(null);
+              }}
+            >
+              <Sparkles size={15} />
+              {failedImport.aiAttachment.kind === 'pdf'
+                ? '交给 AI 识别此 PDF'
+                : '交给 AI 识别此页面'}
+            </button>
+          )}
+          <button
+            className="text-button"
+            onClick={() => {
+              reviewImport(failedImport);
+              setFailedImport(null);
+            }}
+          >
+            手动录入
+          </button>
+        </div>
+      )}
       <div className="calendar-toolbar">
         <div className="week-switch">
           <button aria-label="上一周" disabled={week <= 1} onClick={() => setWeek(week - 1)}>
@@ -790,7 +873,8 @@ export function TimetablePage({
       </div>
       {!table.courses.length && (
         <div className="inline-info">
-          可以从研究生系统网页读取，或导入带文字层的
+          当前学生类型：{studentProfiles[workspace.degree].label}。可以从
+          {studentProfiles[workspace.degree].systemName}网页读取，或导入带文字层的
           PDF。网页导入需在弹出的学校窗口中登录并进入个人课表，再点击“读取当前课表”；导入后可逐条核对修正。
         </div>
       )}
@@ -1122,7 +1206,7 @@ export function TimetablePage({
   );
 }
 export function CampusPage({ workspace, onError }: PageProps) {
-  const degreeLabel = workspace.degree === 'undergrad' ? '本科生' : '研究生';
+  const degreeLabel = studentProfiles[workspace.degree].label;
   const links = campusLinksFor(workspace.degree);
   return (
     <section className="work-page campus-page">
@@ -1131,24 +1215,9 @@ export function CampusPage({ workspace, onError }: PageProps) {
         title="校园入口"
         subtitle={degreeLabel + '常用服务入口，在系统浏览器完成学校统一身份认证。'}
       />
-      <div className="segment-tabs" role="tablist" aria-label="学生类型">
-        <button
-          className={workspace.degree === 'undergrad' ? 'active' : ''}
-          role="tab"
-          aria-selected={workspace.degree === 'undergrad'}
-          onClick={() => api().setDegree('undergrad').catch(onError)}
-        >
-          本科生
-        </button>
-        <button
-          className={workspace.degree === 'graduate' ? 'active' : ''}
-          role="tab"
-          aria-selected={workspace.degree === 'graduate'}
-          onClick={() => api().setDegree('graduate').catch(onError)}
-        >
-          研究生
-        </button>
-      </div>
+      <p className="settings-hint">
+        当前学生类型：{degreeLabel}，可在「设置 → 学生类型」中统一修改。
+      </p>
       {(['degree', 'common'] as const).map((group) => (
         <section
           className="campus-section"

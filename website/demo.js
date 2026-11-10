@@ -105,8 +105,12 @@ const chapters = [
   async tour => {
     await tour.click(sidebar('校园入口'));
     await tour.read('研究生常用入口集中放在这里，点击服务会在系统浏览器打开。', 2200);
-    await tour.click(button('本科生', '.campus-page'));
-    await tour.read('切到本科生后会显示对应服务，校园通用入口也在同一页。', 2200);
+    await tour.click(button('设置', '.sidebar-bottom'));
+    await tour.click('[data-settings-open="student-type"]');
+    await tour.click('[data-degree-choice="undergrad"]');
+    await tour.click(button('返回', '.settings-page-heading'));
+    await tour.click(sidebar('校园入口'));
+    await tour.read('学生类型在首次启动时选择，也能在设置中统一修改；课表导入和校园服务一起切换。', 2200);
   },
   async tour => {
     await tour.click(button('设置', '.sidebar-bottom'));
