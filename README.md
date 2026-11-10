@@ -1,16 +1,34 @@
-# NEU-Dela
+<p align="center">
+  <img src="assets/icon.png" width="112" height="112" alt="NEU-Dela 图标" />
+</p>
 
-**东北大学学生的本地工作台。** 把课表、待办、笔记、邮件和 AI 放在一起，从今天的安排开始。
+<h1 align="center">NEU-Dela</h1>
 
-面向本科生与研究生，提供 Apple Silicon Mac 与 Windows x64 安装包。当前源码版本为 **0.7.2**。
+<p align="center">
+  <strong>你的课表、待办、资料与 AI，一个工作台。</strong>
+</p>
 
-[下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest) · [0.7.2 更新说明](docs/releases/v0.7.2.md) · [使用与开发指南](docs/usage.md) · [反馈问题](https://github.com/yzbcs/NEU-Dela/issues)
+<p align="center">面向东北大学本科生与研究生 · 本地优先 · macOS / Windows</p>
 
-> 本项目由个人独立开发，非东北大学官方应用。
+<p align="center">
+  <a href="https://github.com/yzbcs/NEU-Dela/releases/latest"><img src="https://img.shields.io/github/v/release/yzbcs/NEU-Dela?style=flat-square&amp;label=release&amp;color=315f70" alt="最新发布版本" /></a>
+  <a href="https://github.com/yzbcs/NEU-Dela/actions/workflows/ci.yml"><img src="https://github.com/yzbcs/NEU-Dela/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI 构建状态" /></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-73877b?style=flat-square" alt="macOS 与 Windows" />
+</p>
 
-![工作台首页：未来七天安排、待办与最近笔记](assets/screenshots/home-light.png)
+<p align="center">
+  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.2/NEU-Dela-0.7.2-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.2/NEU-Dela.Setup.0.7.2.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dela/releases/latest">全部下载</a> ·
+  <a href="docs/usage.md">使用指南</a> ·
+  <a href="https://github.com/yzbcs/NEU-Dela/issues">反馈</a>
+</p>
 
-[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发)
+![暖白纸感的 NEU-Dela 介绍横幅与真实工作台首页](assets/screenshots/readme-banner.svg)
+
+> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.2**，安装包未签名。
+
+[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.2.md)
 
 ## 下载
 
@@ -28,6 +46,8 @@
 ### 从接下来的一件事开始
 
 首页显示当前课程或下一项定时安排，把**未来七天的课程与待办**放在同一条日程中。可以直接完成、恢复待办，打开最近笔记，或进入完整课表。
+
+![工作台首页，未来七天安排、待办与最近笔记](assets/screenshots/home-light.png)
 
 - **待办与提醒**：四色便利贴、定时与重复提醒、推迟提醒；点击通知定位到对应待办。
 - **全局搜索**：按 `⌘/Ctrl + K` 查找笔记、待办、课程、本地资料和聊天，直接打开原记录。
