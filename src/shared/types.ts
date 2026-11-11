@@ -96,6 +96,7 @@ export interface AppState {
 
 export interface DolaApi {
   workspace: WorkspaceApi;
+  updates: import('./updates').UpdateApi;
   load(): Promise<AppState>;
   setTheme(theme: Theme): Promise<void>;
   saveProvider(input: ProviderInput): Promise<Provider>;

@@ -7,7 +7,7 @@ export function StartupScreen({ error, onRetry }: { error: string | null; onRetr
     <main className="startup-screen" data-state={error ? 'error' : 'loading'} aria-busy={!error}>
       <div className="startup-card">
         <img className="startup-icon" src={appIcon} alt="" draggable={false} />
-        <h1>NEU-Dela</h1>
+        <h1>NEU Dot</h1>
         <p className="startup-subtitle">你的校园个人工作台</p>
         {error ? (
           <div className="startup-error" role="alert">

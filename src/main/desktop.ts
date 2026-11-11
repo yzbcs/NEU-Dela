@@ -1,13 +1,14 @@
 import { app, dialog, Notification, shell, type BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import { z } from 'zod';
 import type { Store } from './store';
-import type { WorkspaceApi } from '../shared/workspace';
+import type { TimetableImport, WorkspaceApi } from '../shared/workspace';
 import { WorkspaceService } from './workspace';
 import { MailService } from './mail';
-import { readTimetable, timetableIcs } from './timetable';
+import { timetableIcs } from './timetable';
+import { readTimetableFile } from './timetable-file';
 import { openWebTimetableImport } from './web-timetable-window';
 import { LocalFiles } from './local-files';
 import { ChatAttachments } from './chat-attachments';
@@ -31,7 +32,7 @@ export function desktopApi(
   };
   const service = new WorkspaceService(store, changed, (todo) =>
     notify(
-      'NEU-Dela · ' + todo.title,
+      'NEU Dot · ' + todo.title,
       todo.detail || '到时间了，打开工作台查看这条便利贴。',
       todo.id,
     ),
@@ -60,39 +61,58 @@ export function desktopApi(
       service.removeTodo(id(value));
     },
     async testNotification() {
-      notify('NEU-Dela 提醒测试', '如果看到了这条通知，便利贴提醒已可以显示。');
+      notify('NEU Dot 提醒测试', '如果看到了这条通知，便利贴提醒已可以显示。');
     },
     async importTimetable() {
       const result = await dialog.showOpenDialog(getWindow(), {
-        title: '导入课表 PDF',
+        title: '导入学校导出的课表',
         properties: ['openFile'],
-        filters: [{ name: 'PDF 课表', extensions: ['pdf'] }],
+        filters: [
+          {
+            name: '课表文件（PDF、Excel、Word）',
+            extensions: ['pdf', 'xlsx', 'xls', 'docx', 'doc', 'do'],
+          },
+        ],
       });
       if (result.canceled || !result.filePaths[0]) return null;
       const original = result.filePaths[0];
       const directory = join(store.dataDirectory, 'timetables');
       mkdirSync(directory, { recursive: true });
-      const destination = join(directory, randomUUID() + '.pdf');
+      const destination = join(directory, randomUUID() + extname(original).toLowerCase());
       copyFileSync(original, destination);
+      let draft: TimetableImport;
       try {
-        const draft = await readTimetable(destination);
-        draft.sourceName = basename(original);
-        if (!draft.courses.length) {
-          draft.aiAttachment = await chatAttachments.addFile(destination, basename(original));
-          draft.recognitionError = draft.warnings[0];
-        }
-        return draft;
+        draft = await readTimetableFile(destination, store.workspace.degree);
       } catch (error) {
-        return {
+        draft = {
           sourcePath: destination,
           sourceName: basename(original),
           courses: [],
           text: '',
           warnings: [],
           recognitionError: error instanceof Error ? error.message : String(error),
-          aiAttachment: await chatAttachments.addFile(destination, basename(original)),
         };
       }
+      draft.sourceName = basename(original);
+      if (!draft.courses.length) {
+        draft.recognitionError ||= draft.warnings[0] || '未能识别出课程，请核对原始文件。';
+        try {
+          if (extname(destination) === '.pdf')
+            draft.aiAttachment = await chatAttachments.addFile(destination, basename(original));
+          else if (draft.text.trim()) {
+            const structuredPath = destination + '.json';
+            writeFileSync(structuredPath, draft.text);
+            draft.aiAttachment = await chatAttachments.addFile(
+              structuredPath,
+              basename(original) + '（课表结构）.json',
+            );
+          }
+        } catch (error) {
+          draft.recognitionError +=
+            ' 引用文件准备失败，' + (error instanceof Error ? error.message : String(error));
+        }
+      }
+      return draft;
     },
     async importWebTimetable() {
       if (!store.workspace.degreeConfirmed) throw new Error('请先选择本科生或研究生身份。');

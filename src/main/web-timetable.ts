@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { periodTimes, type Course, type TimetableImport } from '../shared/workspace';
-import { courseBlocks, courseWeeks } from './course-text';
+import { courseBlocks, courseWeeks, undergraduateCourseBlocks } from './course-text';
 import { studentProfiles, type Degree } from '../shared/student-profile';
 
 export interface WebCell {
@@ -16,9 +16,10 @@ export interface CoursePage {
   title: string;
   term: string;
   tables: WebTable[];
+  cards?: { text: string; day: number; start: number; end: number }[];
 }
 
-/** 在学校网页自身的 frame 中运行，只读取已展示的表格和学期文字。 */
+/** 在学校 frame 中读取表格、课程卡片及其课程详情，不访问登录输入框。 */
 export function captureCoursePage(): CoursePage | null {
   const visible = (element: Element) => {
     const style = getComputedStyle(element);
@@ -49,7 +50,40 @@ export function captureCoursePage(): CoursePage | null {
   const term =
     text.match(/20\d{2}\s*[-—–]\s*20\d{2}\s*(?:学年)?\s*(?:第?[一二12]学期|[春秋]季学期)/)?.[0] ??
     '';
-  return { url: location.origin + location.pathname, title: document.title, term, tables };
+  const courseElements = [
+    ...document.querySelectorAll<HTMLElement>('.kbappTimetableCourseRenderCourseItem'),
+  ].filter(visible);
+  const labels = (
+    courseElements.length ? [...document.querySelectorAll<HTMLElement>('div,span,th,td')] : []
+  )
+    .filter((element) => visible(element) && !element.children.length)
+    .map((element) => {
+      const text = element.innerText.trim();
+      let box = element;
+      while (box.parentElement?.innerText.trim() === text) box = box.parentElement;
+      return { text, rect: box.getBoundingClientRect() };
+    });
+  const days = labels.filter((label) => /^星期[一二三四五六日天]$/.test(label.text));
+  const periods = labels.filter((label) => /^第[一二三四五六七八九十]+节$/.test(label.text));
+  const periodNames = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+  const cards = courseElements.map((element) => {
+    const rect = element.getBoundingClientRect();
+    const center = rect.left + rect.width / 2;
+    const day = days.find((label) => center >= label.rect.left && center < label.rect.right);
+    const period = periods.find(
+      (label) => rect.top + 3 >= label.rect.top && rect.top + 3 < label.rect.bottom,
+    );
+    const start = period ? periodNames.indexOf(period.text.slice(1, -1)) + 1 : 0;
+    const span = Number(element.dataset.scalesSpan);
+    const tooltip = document.getElementById(element.getAttribute('aria-describedby') ?? '');
+    return {
+      text: tooltip?.textContent?.trim() || element.innerText.trim(),
+      day: day ? Math.min(7, '一二三四五六日天'.indexOf(day.text.at(-1)!) + 1) : 0,
+      start,
+      end: start && Number.isInteger(span) && span > 0 ? start + span - 1 : 0,
+    };
+  });
+  return { url: location.origin + location.pathname, title: document.title, term, tables, cards };
 }
 
 const clean = (text: string) => text.normalize('NFKC').trim();
@@ -171,7 +205,7 @@ function parseList(grid: PlacedCell[][]): Course[] | null {
   }
   return result;
 }
-function parseGrid(cells: PlacedCell[]): Course[] {
+function parseGrid(cells: PlacedCell[], degree: Degree): Course[] {
   const headers = cells.filter((cell) =>
     /^(?:星期|周)[一二三四五六日天](?:\s|\(|$)/.test(cell.text),
   );
@@ -192,7 +226,10 @@ function parseGrid(cells: PlacedCell[]): Course[] {
       .filter(([row]) => row >= cell.row && row < cell.row + cell.rowSpan)
       .sort((a, b) => a[0] - b[0]);
     if (!periods.length) continue;
-    for (const block of courseBlocks(cell.text.split('\n')))
+    const lines = cell.text.split('\n');
+    const blocks =
+      (degree === 'undergrad' ? undergraduateCourseBlocks(lines) : null) ?? courseBlocks(lines);
+    for (const block of blocks)
       courses.push({
         ...block,
         id: randomUUID(),
@@ -208,35 +245,69 @@ export function parseWebTimetable(pages: CoursePage[], degree: Degree): Timetabl
     texts: string[] = [];
   let sourceUrl = '',
     term = '';
-  for (const page of pages)
+  const warnings: string[] = [];
+  const add = (course: Course) => {
+    if (
+      !courses.some(
+        (old) =>
+          old.name === course.name &&
+          old.day === course.day &&
+          old.start === course.start &&
+          old.end === course.end &&
+          old.weeks === course.weeks &&
+          old.location === course.location &&
+          old.teacher === course.teacher,
+      )
+    )
+      courses.push(course);
+  };
+  for (const page of pages) {
+    for (const card of page.cards ?? []) {
+      const blocks = undergraduateCourseBlocks(card.text.split('\n')) ?? [];
+      if (
+        card.day < 1 ||
+        card.day > 7 ||
+        card.start < 1 ||
+        card.end < card.start ||
+        card.end > 12
+      ) {
+        warnings.push('未能确定课程卡片的星期或节次，请核对课程原文。' + card.text);
+        continue;
+      }
+      for (const block of blocks)
+        add({ ...block, id: randomUUID(), day: card.day, start: card.start, end: card.end });
+      if (blocks.length) {
+        sourceUrl ||= page.url;
+        term ||= page.term;
+        texts.push(card.text);
+      } else warnings.push('未能识别课程卡片，请核对课程原文。' + card.text);
+    }
     for (const table of page.tables) {
       const { grid, cells } = layout(table);
-      const parsed = parseList(grid) ?? parseGrid(cells);
+      const parsed = parseList(grid) ?? parseGrid(cells, degree);
       if (!parsed.length) continue;
       sourceUrl ||= page.url;
       term ||= page.term;
       texts.push(table.rows.map((row) => row.map((cell) => cell.text).join('\t')).join('\n'));
-      for (const course of parsed)
-        if (
-          !courses.some(
-            (old) =>
-              old.name === course.name &&
-              old.day === course.day &&
-              old.start === course.start &&
-              old.end === course.end &&
-              old.weeks === course.weeks &&
-              old.location === course.location &&
-              old.teacher === course.teacher,
-          )
-        )
-          courses.push(course);
+      for (const course of parsed) add(course);
+      if (degree === 'undergrad')
+        for (const cell of cells) {
+          const blocks = undergraduateCourseBlocks(cell.text.split('\n'));
+          const names = [...new Set(blocks?.map((block) => block.name))];
+          if (names.length > 1)
+            warnings.push(
+              '导出文件中的多门课共用合并单元格，请逐项核对结束节次。涉及课程为 ' +
+                names.join('、'),
+            );
+        }
     }
+  }
   if (!courses.length)
     throw new Error('没有识别到课程。请先登录，进入个人课表并选择全学期显示，再点击读取。');
-  const warnings = [
+  warnings.push(
     '读取的是当前页面已展示的课程，请核对学期、周次与课程数量后保存；分页列表请先选择显示全部。',
     '请确认第一周的周一日期。',
-  ];
+  );
   if (courses.some((course) => !course.weeks))
     warnings.unshift('部分课程没有可识别的周次，请在保存前补充。');
   return {

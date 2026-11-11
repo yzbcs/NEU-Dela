@@ -138,7 +138,7 @@ export function Modal({
       >
         <header>
           <h2>{title}</h2>
-          <button className="icon-button" aria-label="关闭弹窗" onClick={onClose}>
+          <button type="button" className="icon-button" aria-label="关闭弹窗" onClick={onClose}>
             <X size={18} />
           </button>
         </header>
@@ -628,6 +628,7 @@ export function TimetablePage({
   const courseEditor = useRef<HTMLTableElement>(null);
   const [rawText, setRawText] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
+  const mergedCourseWarnings = warnings.filter((warning) => warning.includes('共用合并单元格'));
   const [loading, setLoading] = useState<'pdf' | 'web' | null>(null);
   const [failedImport, setFailedImport] = useState<TimetableImport | null>(null);
   function reviewImport(imported: TimetableImport) {
@@ -781,7 +782,7 @@ export function TimetablePage({
           onClick={() => void importCourses('pdf')}
         >
           <Upload size={15} />
-          {loading === 'pdf' ? '正在读取 PDF' : '导入 PDF'}
+          {loading === 'pdf' ? '正在读取课表文件' : '导入课表文件'}
         </button>
         <button
           className="secondary-button"
@@ -807,7 +808,11 @@ export function TimetablePage({
                   target: 'timetable',
                   operation: 'import',
                   source:
-                    failedImport.aiAttachment?.kind === 'pdf' ? 'PDF 课表导入' : '网页课表读取',
+                    failedImport.aiAttachment?.kind === 'pdf'
+                      ? 'PDF 课表导入'
+                      : failedImport.sourceUrl
+                        ? '网页课表读取'
+                        : '课表文件导入',
                   error: failedImport.recognitionError,
                   attachment: failedImport.aiAttachment,
                 });
@@ -817,7 +822,9 @@ export function TimetablePage({
               <Sparkles size={15} />
               {failedImport.aiAttachment.kind === 'pdf'
                 ? '交给 AI 识别此 PDF'
-                : '交给 AI 识别此页面'}
+                : failedImport.sourceUrl
+                  ? '交给 AI 识别此页面'
+                  : '交给 AI 识别此文件'}
             </button>
           )}
           <button
@@ -858,7 +865,7 @@ export function TimetablePage({
             onClick={() => api().openLocal(table.sourcePath).catch(onError)}
           >
             <FileText size={14} />
-            原始 PDF
+            原始文件
           </button>
         )}
         {table.sourceUrl && (
@@ -875,7 +882,8 @@ export function TimetablePage({
         <div className="inline-info">
           当前学生类型：{studentProfiles[workspace.degree].label}。可以从
           {studentProfiles[workspace.degree].systemName}网页读取，或导入带文字层的
-          PDF。网页导入需在弹出的学校窗口中登录并进入个人课表，再点击“读取当前课表”；导入后可逐条核对修正。
+          PDF，或教务系统导出的 Excel、Word
+          课表。网页导入需在弹出的学校窗口中登录并进入个人课表，再点击“读取当前课表”；导入后可逐条核对修正。
         </div>
       )}
       {conflicts.length > 0 && (
@@ -1027,11 +1035,24 @@ export function TimetablePage({
                 />
               </label>
             </div>
-            {warnings.map((warning) => (
-              <p key={warning} className="inline-info">
-                {warning}
-              </p>
-            ))}
+            <p>共 {draft.courses.length} 条课程安排</p>
+            {warnings
+              .filter((warning) => !mergedCourseWarnings.includes(warning))
+              .map((warning, index) => (
+                <p key={index} className="inline-info">
+                  {warning}
+                </p>
+              ))}
+            {mergedCourseWarnings.length > 0 && (
+              <details className="inline-info">
+                <summary>
+                  导出文件有 {mergedCourseWarnings.length} 组合并课程，请核对各课结束节次
+                </summary>
+                {mergedCourseWarnings.map((warning, index) => (
+                  <p key={index}>{warning}</p>
+                ))}
+              </details>
+            )}
             <div className="course-editor-scroll">
               <table ref={courseEditor} className="course-editor">
                 <thead>

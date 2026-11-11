@@ -239,7 +239,7 @@ export function timetableIcs(table: Timetable): string {
   const rows = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//NEU-Dela//Timetable//ZH',
+    'PRODID:-//NEU Dot//Timetable//ZH',
     'CALSCALE:GREGORIAN',
   ];
   for (const course of table.courses)

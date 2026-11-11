@@ -8,7 +8,7 @@ assignees: ''
 
 ## 环境
 
-- NEU-Dela 版本：
+- NEU Dot 版本：
 - 操作系统与芯片架构：
 
 ## 复现步骤

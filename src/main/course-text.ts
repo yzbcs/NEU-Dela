@@ -14,6 +14,43 @@ export function courseWeeks(raw: string): string {
   }
 }
 
+/** 本科课程卡片和 Office 导出共用的课程文本。实验课详情来自对应卡片的提示框。 */
+export function undergraduateCourseBlocks(
+  lines: string[],
+): Omit<Course, 'id' | 'day' | 'start' | 'end'>[] | null {
+  const groups: { name: string; lines: string[] }[] = [];
+  for (const raw of lines) {
+    const text = raw.normalize('NFKC').trim();
+    const title = /^(.+?)\s+[A-Z]\d{6,}$/.exec(text);
+    if (title || /^\[实\]/.test(text)) {
+      groups.push({ name: title?.[1] ?? text, lines: [] });
+    } else groups.at(-1)?.lines.push(text);
+  }
+  if (!groups.length) return null;
+  return groups.flatMap(({ name, lines }) => {
+    const detail = [name, ...lines].join('\n');
+    const schedules = lines.flatMap((text) => {
+      const schedule = /^([\d\s,，、\-~～—–至单双()第周]+)\s*(.*)$/.exec(text);
+      if (!schedule?.[1].includes('周')) return [];
+      // 校区前为教师，校区后为地点；实验课末尾的班级名单不属于教室名称。
+      const place = /^(.*?)\s*((?:\S+校区)(?:\s+.*)?)$/.exec(schedule[2]);
+      return [
+        {
+          name,
+          weeks: courseWeeks(schedule[1].trim()),
+          detail,
+          teacher: (place?.[1] ?? schedule[2]).trim(),
+          location: (place?.[2] ?? '')
+            .replace(/\s+[^\s,，]+\d{4}\(\d+\)(?:[,，].*)?$/, '')
+            .replace(/\s+/g, ' ')
+            .trim(),
+        },
+      ];
+    });
+    return schedules.length ? schedules : [{ name, weeks: '', teacher: '', location: '', detail }];
+  });
+}
+
 /** 同一单元格可按周次分出多条安排，保留原文供导入时核对。 */
 export function courseBlocks(lines: string[]): Omit<Course, 'id' | 'day' | 'start' | 'end'>[] {
   const blocks: { weeks: string; lines: string[] }[] = [];

@@ -59,6 +59,7 @@ import { ChatHistory } from './components/ChatHistory';
 import { assistancePrompt, type AiAssistanceRequest } from '../shared/ai-assistance';
 import { SettingsPage } from './SettingsPage';
 import type { WorkspaceSearchResult } from '../shared/search';
+import type { UpdateState } from '../shared/updates';
 import appIcon from '../../assets/icon.png';
 import './workspace.css';
 
@@ -73,11 +74,11 @@ function Brand({ small = false }: { small?: boolean }) {
   return (
     <div className={'brand ' + (small ? 'brand-small' : '')}>
       <span className="brand-mark">
-        <img src={appIcon} alt={small ? 'NEU-Dela' : ''} draggable={false} />
+        <img src={appIcon} alt={small ? 'NEU Dot' : ''} draggable={false} />
       </span>
       {!small && (
         <span>
-          <strong>NEU-Dela</strong>
+          <strong>NEU Dot</strong>
           <small>东北大学 · 学生工作台</small>
         </span>
       )}
@@ -110,7 +111,7 @@ function Message({
       )}
       <div className="message-content">
         <div className="message-label">
-          {message.role === 'user' ? '你' : 'NEU-Dela'}
+          {message.role === 'user' ? '你' : 'NEU Dot'}
           {message.role === 'assistant' && <span>{message.model}</span>}
         </div>
         <ChatAttachmentList
@@ -362,6 +363,7 @@ export function App() {
   const [focusRequest, setFocusRequest] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [state, setState] = useState<AppState>(empty);
+  const [update, setUpdate] = useState<UpdateState | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newSelection, setNewSelection] = useState<{ providerId: string; model: string } | null>(
     null,
@@ -369,7 +371,7 @@ export function App() {
   const [settings, setSettings] = useState<{
     request: number;
     fromChat: boolean;
-    initialPage?: 'models';
+    initialPage?: 'models' | 'about';
     activeProviderId?: string;
   } | null>(null);
   const settingsRequest = useRef(0);
@@ -456,7 +458,7 @@ export function App() {
   async function loadWorkspace() {
     setStartupError(null);
     if (!window.dola) {
-      setStartupError('请通过桌面应用打开 NEU-Dela，浏览器预览无法访问本机工作台。');
+      setStartupError('请通过桌面应用打开 NEU Dot，浏览器预览无法访问本机工作台。');
       return;
     }
     try {
@@ -520,12 +522,22 @@ export function App() {
   useEffect(() => {
     const unsubscribe = window.dola?.onChange(setState);
     const unsubscribeTodo = window.dola?.onOpenTodo(setNotificationTodoId);
+    const unsubscribeUpdates = window.dola?.updates.onChange(setUpdate);
+    void window.dola?.updates.getState().then(setUpdate).catch(fail);
     void loadWorkspace();
     return () => {
       unsubscribe?.();
       unsubscribeTodo?.();
+      unsubscribeUpdates?.();
     };
   }, []);
+  useEffect(
+    () => window.dola?.updates.onOpen(() => openSettings(false, 'about')),
+    [page, activeId],
+  );
+  useEffect(() => {
+    if (loaded) void window.dola.updates.confirmLaunch().catch(fail);
+  }, [loaded]);
   useEffect(() => {
     if (!loaded || !notificationTodoId) return;
     setNotificationTodoId(undefined);
@@ -601,7 +613,7 @@ export function App() {
         : {}),
     });
   }
-  function openSettings(fromChat = false) {
+  function openSettings(fromChat = false, initialPage?: 'about') {
     returnScroll.current =
       page === 'chat' && chatScroll.current
         ? { chatId: activeId, top: chatScroll.current.scrollTop }
@@ -609,7 +621,7 @@ export function App() {
     setSettings({
       request: ++settingsRequest.current,
       fromChat,
-      initialPage: fromChat ? 'models' : undefined,
+      initialPage: fromChat ? 'models' : initialPage,
       activeProviderId: fromChat ? providerId : undefined,
     });
   }
@@ -805,6 +817,29 @@ export function App() {
           onRemove={(item) => void removeChat(item)}
         />
         <div className="sidebar-bottom">
+          {update?.version && update.status !== 'current' && update.status !== 'checking' && (
+            <button
+              className="sidebar-update"
+              data-update-notice
+              onClick={() => openSettings(false, 'about')}
+            >
+              <RefreshCw size={16} />
+              <span>
+                <strong>
+                  {update.status === 'ready'
+                    ? '重启安装新版本'
+                    : update.status === 'downloading'
+                      ? '正在下载更新'
+                      : '发现新版本'}
+                </strong>
+                <small>
+                  {update.version}
+                  {update.progress ? ` · ${Math.floor(update.progress.percent)}%` : ''}
+                </small>
+              </span>
+              <ChevronRight size={14} />
+            </button>
+          )}
           <div className="appearance">
             <span>外观</span>
             <div className="theme-switcher" role="group" aria-label="外观主题">
@@ -844,7 +879,7 @@ export function App() {
             </span>
             <div>
               东北大学
-              <small>NEU-Dela · 校园工作台</small>
+              <small>NEU Dot · 校园工作台</small>
             </div>
           </div>
         </div>
@@ -854,6 +889,7 @@ export function App() {
           <SettingsPage
             key={settings.request}
             state={state}
+            update={update}
             initialPage={settings.initialPage}
             activeProviderId={settings.activeProviderId}
             fromChat={settings.fromChat}

@@ -1,7 +1,7 @@
 {
   "name": "neu-dola",
-  "productName": "NEU-Dela",
-  "version": "0.7.6",
+  "productName": "NEU Dot",
+  "version": "0.7.7",
   "private": true,
   "description": "东北大学学生的本地校园个人助手：课表、待办、笔记、邮件与 AI 工作台",
   "type": "module",
@@ -22,6 +22,9 @@
     "@earendil-works/pi-agent-core": "1.5.0",
     "@earendil-works/pi-ai": "1.5.0",
     "@earendil-works/pi-coding-agent": "1.5.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "electron-updater": "6.8.11",
+    "fflate": "^0.8.3",
     "imapflow": "^2.10.0",
     "mailparser": "^3.14.1",
     "nodemailer": "^10.3.1",
@@ -50,11 +53,15 @@
   },
   "build": {
     "appId": "cn.neu.dola",
-    "productName": "NEU-Dela",
+    "productName": "NEU Dot",
     "extraResources": [
       {
         "from": "assets/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "scripts/mac-update-helper.sh",
+        "to": "mac-update-helper.sh"
       }
     ],
     "directories": {
@@ -67,7 +74,8 @@
     "mac": {
       "icon": "assets/icon.png",
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "category": "public.app-category.productivity"
     },
@@ -80,7 +88,16 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "artifactName": "NEU-Dot-${version}-${os}-${arch}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "yzbcs",
+        "repo": "NEU-Dela",
+        "releaseType": "release"
+      }
+    ]
   },
   "repository": {
     "type": "git",

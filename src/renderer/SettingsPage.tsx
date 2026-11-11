@@ -34,6 +34,8 @@ import { ProviderSettingsForm } from './components/ProviderSettingsForm';
 import { MailSettingsForm } from './components/MailSettingsForm';
 import { TermSettingsForm } from './components/TermSettingsForm';
 import { StudentTypeChoices } from './components/StudentTypeChoices';
+import { UpdatePanel } from './components/UpdatePanel';
+import type { UpdateState } from '../shared/updates';
 import { studentProfiles } from '../shared/student-profile';
 import appIcon from '../../assets/icon.png';
 import './settings.css';
@@ -61,7 +63,7 @@ const labels: Record<SettingsSection, string> = {
   reminders: '提醒与后台',
   data: '本地数据',
   help: '帮助与诊断',
-  about: '关于 NEU-Dela',
+  about: '关于 NEU Dot',
 };
 const themeLabels: Record<Theme, string> = { light: '浅色', dark: '深色', system: '跟随系统' };
 const providerPresets: ProviderInput[] = [
@@ -88,6 +90,7 @@ const workspace = () => window.dola.workspace;
 
 export function SettingsPage({
   state,
+  update,
   initialPage,
   activeProviderId,
   fromChat = false,
@@ -97,7 +100,8 @@ export function SettingsPage({
   onNotice,
 }: {
   state: AppState;
-  initialPage?: 'models';
+  update: UpdateState | null;
+  initialPage?: 'models' | 'about';
   activeProviderId?: string;
   fromChat?: boolean;
   onClose: () => void;
@@ -186,7 +190,7 @@ export function SettingsPage({
     <section className="settings-workspace" data-settings-page={view}>
       <header className="settings-page-heading">
         <div>
-          <div className="settings-breadcrumb">NEU-Dela{page !== 'overview' && <> / 设置</>}</div>
+          <div className="settings-breadcrumb">NEU Dot{page !== 'overview' && <> / 设置</>}</div>
           <h1>{labels[page]}</h1>
           <p>
             {page === 'overview'
@@ -257,7 +261,7 @@ export function SettingsPage({
               {row(
                 'about',
                 Info,
-                '关于 NEU-Dela',
+                '关于 NEU Dot',
                 info ? `版本 ${info.version}` : infoError ? '版本信息读取失败' : '正在读取版本',
               )}
             </div>
@@ -625,7 +629,7 @@ export function SettingsPage({
             </p>
             <h3 className="settings-form-section-title">没有看到通知时</h3>
             <p className="settings-hint">
-              请在系统设置中允许 NEU-Dela
+              请在系统设置中允许 NEU Dot
               发送通知，并检查勿扰模式。触发测试不代表系统已经显示通知横幅。
             </p>
           </section>
@@ -726,7 +730,7 @@ export function SettingsPage({
         <div className="settings-detail">
           <section className="settings-card settings-about">
             <img src={appIcon} alt="" />
-            <h2>NEU-Dela</h2>
+            <h2>NEU Dot</h2>
             <p>东北大学学生的本地校园工作台</p>
             <dl className="settings-values">
               <div>
@@ -764,6 +768,13 @@ export function SettingsPage({
               )}
             </div>
           </section>
+          <UpdatePanel
+            update={update}
+            chatBusy={state.chats.some((chat) =>
+              chat.messages.some((message) => message.state === 'streaming'),
+            )}
+            onError={onError}
+          />
         </div>
       )}
       {status && (

@@ -59,11 +59,18 @@ jobs:
           - os: macos-15
             platform: mac
             arch: arm64
-            installer: assets/output/releases/*.dmg
+            installer: |
+              assets/output/releases/*.dmg
+              assets/output/releases/*.zip
+              assets/output/releases/*.blockmap
+              assets/output/releases/latest-mac.yml
           - os: windows-2022
             platform: win
             arch: x64
-            installer: assets/output/releases/*.exe
+            installer: |
+              assets/output/releases/*.exe
+              assets/output/releases/*.blockmap
+              assets/output/releases/latest.yml
     defaults:
       run:
         shell: bash
@@ -95,12 +102,20 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install manifest verification dependencies
+        run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v7
         with:
           pattern: installer-*
           merge-multiple: true
           path: assets/output/release-download
-      - name: Upload both installers and publish
+      - name: Verify updater artifacts
+        run: node scripts/verify-release-updates.mjs assets/output/release-download
+      - name: Upload installers and updater metadata, then publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -125,15 +140,18 @@ jobs:
               tag_args=(--target "$GITHUB_SHA")
             fi
             gh release create "$RELEASE_TAG" "${tag_args[@]}" --draft \
-              --title "NEU-Dela $version" --notes-file "$notes"
+              --title "NEU Dot $version" --notes-file "$notes"
           elif [[ "$GITHUB_REF_TYPE" == branch && -z "$tag_commit" ]] &&
             [[ "$(gh release view "$RELEASE_TAG" --json targetCommitish --jq .targetCommitish)" != "$GITHUB_SHA" ]]; then
             echo "::error::$RELEASE_TAG draft targets a different commit."
             exit 1
           fi
           gh release upload "$RELEASE_TAG" \
-            "assets/output/release-download/NEU-Dela-$version-arm64.dmg" \
-            "assets/output/release-download/NEU-Dela Setup $version.exe" --clobber
+            assets/output/release-download/*.dmg \
+            assets/output/release-download/*.zip \
+            assets/output/release-download/*.exe \
+            assets/output/release-download/*.blockmap \
+            assets/output/release-download/latest*.yml --clobber
           if [[ "$version" == *-* ]]; then
             gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false --notes-file "$notes"
           else

@@ -11,5 +11,5 @@ const app = join(output, 'app');
 await cp('out/renderer', app, { recursive: true });
 const index = join(app, 'index.html');
 const html = await readFile(index, 'utf8');
-if (!html.includes('<script type="module"')) throw new Error('Built NEU-Dela renderer not found');
-await writeFile(index, html.replace('<script type="module"', '<script src="../tour-fixture.js?v=study-tour-1"></script>\n    <script type="module"'));
+if (!html.includes('<script type="module"')) throw new Error('Built NEU Dot renderer not found');
+await writeFile(index, html.replace('<script type="module"', '<script src="../tour-fixture.js?v=study-tour-2"></script>\n    <script type="module"'));

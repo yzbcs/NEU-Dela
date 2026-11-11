@@ -112,6 +112,16 @@
   });
 
   window.dola = {
+    updates: {
+      getState: async () => ({status: 'unavailable', currentVersion: '0.7.7'}),
+      check: async () => ({status: 'unavailable', currentVersion: '0.7.7'}),
+      download: async () => ({status: 'unavailable', currentVersion: '0.7.7'}),
+      cancel: async () => {},
+      install: async () => {},
+      confirmLaunch: async () => {},
+      onChange: () => () => {},
+      onOpen: () => () => {},
+    },
     load: async () => clone(state),
     onChange: listener => { listeners.add(listener); return () => listeners.delete(listener); },
     onOpenTodo: () => () => {},
@@ -179,7 +189,7 @@
       mailCached: async () => clone(mailPage()),
       mailRead: async () => { mail.seen = true; return clone(mail); },
       setDegree: async degree => { w.degree = degree; w.degreeConfirmed = true; publish(); },
-      getAppInfo: async () => ({version: '0.7.6', dataDirectory: '/演示工作台'}),
+      getAppInfo: async () => ({version: '0.7.7', dataDirectory: '/演示工作台'}),
     },
   };
 })();

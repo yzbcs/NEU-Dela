@@ -99,7 +99,7 @@ export class MailService {
       connectionTimeout: 20000,
       greetingTimeout: 20000,
       socketTimeout: 30000,
-      clientInfo: { name: 'NEU-Dela', version: '0.2.0' },
+      clientInfo: { name: 'NEU Dot', version: '0.2.0' },
     });
     client.on('error', () => {});
     const abort = () => client.close();

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/icon.png" width="112" height="112" alt="NEU-Dela 图标" />
+  <img src="assets/icon.png" width="112" height="112" alt="NEU Dot 图标" />
 </p>
 
-<h1 align="center">NEU-Dela</h1>
+<h1 align="center">NEU Dot</h1>
 
 <p align="center">
   <strong>你的课表、待办、资料与 AI，一个工作台。</strong>
@@ -17,18 +17,20 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.6/NEU-Dela-0.7.6-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
-  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.6/NEU-Dela.Setup.0.7.6.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.7/NEU-Dot-0.7.7-mac-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.7/NEU-Dot-0.7.7-win-x64.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
   <a href="https://github.com/yzbcs/NEU-Dela/releases/latest">全部下载</a> ·
   <a href="docs/usage.md">使用指南</a> ·
   <a href="https://github.com/yzbcs/NEU-Dela/issues">反馈</a>
 </p>
 
-![暖白纸感的 NEU-Dela 介绍横幅与真实工作台首页](assets/screenshots/readme-banner.svg)
+![暖白纸感的 NEU Dot 介绍横幅与真实工作台首页](assets/screenshots/readme-banner.svg)
 
-> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.6**，安装包未签名。
+> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.7**，安装包未签名。
 
-[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.6.md)
+应用已启用 **NEU Dot** 名称，并加入应用内更新提醒、下载进度与重启安装。0.7.6 及更早版本需要先手动安装一次 0.7.7，后续版本可通过应用内更新。
+
+[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.7.md)
 
 ## 下载
 
@@ -67,11 +69,11 @@
 
 ### 把课表带进工作台
 
-首次启动选择本科生或研究生，课表网页导入会打开对应学校系统，之后可在“设置 → 学生类型”统一修改。也支持 PDF 导入和手动录入。保存前预览并修正课程、周次与学期；支持单双周、自定义节次、课程配色、冲突提示和 ICS 导出。点击课程可以新建课堂笔记，或查看同名课程的笔记与资料。
+首次启动选择本科生或研究生，课表网页导入会打开对应学校系统，之后可在“设置 → 学生类型”统一修改。也支持 PDF 和教务系统导出的 Excel、Word 课表文件，以及手动录入。保存前预览并修正课程、周次与学期，支持单双周、自定义节次、课程配色、冲突提示和 ICS 导出。点击课程可以新建课堂笔记，或查看同名课程的笔记与资料。
 
 ![课表：课程配色、周视图与课程详情](assets/screenshots/timetable-light.png)
 
-网页导入需要自行登录学校系统并主动读取当前课表。研究生已有真实样例验证；本科入口与人工表格导入已验证，真实本科课表版式仍待补充。扫描 PDF 可手动录入。
+网页导入需要自行登录学校系统并主动读取当前课表。本科网页及其 Excel、Word 导出文件已使用真实样例验证，三条路径均生成 40 条课程安排，包含实验课以及教师、地点随周次变化的安排。学校导出的合并单元格会丢失部分课程各自的结束节次，文件导入预览会列出需要核对的课程。研究生网页及 PDF 已有真实样例验证，扫描 PDF 可手动录入。
 
 ### 让笔记和资料留在手边
 
@@ -120,7 +122,7 @@
 <details>
 <summary>查看 0.4.0 启动界面</summary>
 
-![NEU-Dela 启动加载界面](assets/screenshots/startup.png)
+![NEU Dot 启动加载界面](assets/screenshots/startup.png)
 
 数据就绪后进入首页；加载失败时可查看原因并重试。
 
@@ -129,7 +131,7 @@
 <details>
 <summary>截图版本与演示数据</summary>
 
-截图均使用人工数据。模型服务来自 0.7.2，设置总览来自 0.7.1，本地资料来自 0.6.0。
+截图均使用人工数据，部分画面来自更名前的版本。模型服务来自 0.7.2，设置总览来自 0.7.1，本地资料来自 0.6.0。
 
 </details>
 

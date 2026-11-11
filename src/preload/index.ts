@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { DolaApi, AppState, ProviderConnectionInput, ProviderInput } from '../shared/types';
 import type { WorkspaceApi } from '../shared/workspace';
+import type { UpdateState } from '../shared/updates';
 
 const workspaceMethods: (keyof WorkspaceApi)[] = [
   'saveTodo',
@@ -46,6 +47,24 @@ const workspaceMethods: (keyof WorkspaceApi)[] = [
 ];
 
 contextBridge.exposeInMainWorld('dola', {
+  updates: {
+    getState: () => ipcRenderer.invoke('dola:updates:get'),
+    check: () => ipcRenderer.invoke('dola:updates:check'),
+    download: () => ipcRenderer.invoke('dola:updates:download'),
+    cancel: () => ipcRenderer.invoke('dola:updates:cancel'),
+    install: () => ipcRenderer.invoke('dola:updates:install'),
+    confirmLaunch: () => ipcRenderer.invoke('dola:updates:ready'),
+    onChange: (listener) => {
+      const handler = (_event: unknown, state: UpdateState) => listener(state);
+      ipcRenderer.on('dola:updates:change', handler);
+      return () => ipcRenderer.removeListener('dola:updates:change', handler);
+    },
+    onOpen: (listener) => {
+      const handler = () => listener();
+      ipcRenderer.on('dola:updates:open', handler);
+      return () => ipcRenderer.removeListener('dola:updates:open', handler);
+    },
+  },
   workspace: Object.fromEntries(
     workspaceMethods.map((name) => [
       name,
