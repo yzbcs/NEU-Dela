@@ -1,7 +1,7 @@
 {
-  "name": "neu-dola",
+  "name": "neu-dot",
   "productName": "NEU Dot",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "private": true,
   "description": "东北大学学生的本地校园个人助手：课表、待办、笔记、邮件与 AI 工作台",
   "type": "module",
@@ -94,17 +94,17 @@
       {
         "provider": "github",
         "owner": "yzbcs",
-        "repo": "NEU-Dela",
+        "repo": "NEU-Dot",
         "releaseType": "release"
       }
     ]
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yzbcs/NEU-Dela.git"
+    "url": "git+https://github.com/yzbcs/NEU-Dot.git"
   },
-  "homepage": "https://github.com/yzbcs/NEU-Dela#readme",
+  "homepage": "https://github.com/yzbcs/NEU-Dot#readme",
   "bugs": {
-    "url": "https://github.com/yzbcs/NEU-Dela/issues"
+    "url": "https://github.com/yzbcs/NEU-Dot/issues"
   }
 }

@@ -1,6 +1,6 @@
 # 参与开发
 
-欢迎通过 [Issues](https://github.com/yzbcs/NEU-Dela/issues) 反馈实际使用问题或提出具体场景，也可以提交 Pull Request。
+欢迎通过 [Issues](https://github.com/yzbcs/NEU-Dot/issues) 反馈实际使用问题或提出具体场景，也可以提交 Pull Request。
 
 ## 本地启动
 

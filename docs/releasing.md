@@ -1,6 +1,6 @@
 # 发布安装包
 
-GitHub Actions 的 [Release installers](https://github.com/yzbcs/NEU-Dela/actions/workflows/release.yml) 工作流负责 Apple Silicon Mac 和 Windows x64 安装包。
+GitHub Actions 的 [Release installers](https://github.com/yzbcs/NEU-Dot/actions/workflows/release.yml) 工作流负责 Apple Silicon Mac 和 Windows x64 安装包。
 
 ## 发版
 
@@ -23,7 +23,7 @@ git push origin v0.7.2
 
 ## 应用内更新与发布产物
 
-更新源为公开 GitHub 仓库 `yzbcs/NEU-Dela` 的稳定版 Release。客户端使用打包时生成的 `app-update.yml` 读取更新源，启动约 10 秒及每 6 小时检查。用户主动下载，再点击重启安装。客户端关闭预发布及降级，Windows 关闭自动退出安装与 Web Installer。
+更新源为公开 GitHub 仓库 `yzbcs/NEU-Dot` 的稳定版 Release。客户端使用打包时生成的 `app-update.yml` 读取更新源，启动约 10 秒及每 6 小时检查。用户主动下载，再点击重启安装。客户端关闭预发布及降级，Windows 关闭自动退出安装与 Web Installer。
 
 每次稳定版需要同时发布以下文件，其中 `${version}` 替换为实际版本号。
 
@@ -46,7 +46,7 @@ Windows 使用 `electron-updater` 的 NSIS 更新器。Mac 使用 `MacZipUpdater
 在 Actions 中选择 **Release installers → Run workflow**，选择需要验证的分支。或在本机运行：
 
 ```sh
-gh workflow run release.yml --repo yzbcs/NEU-Dela --ref main
+gh workflow run release.yml --repo yzbcs/NEU-Dot --ref main
 ```
 
 手动运行会执行构建和打包，将两个安装包保存在该次运行的 Artifacts。
@@ -54,4 +54,4 @@ gh workflow run release.yml --repo yzbcs/NEU-Dela --ref main
 - `installer-mac-arm64` 包含 Mac DMG、ZIP、blockmap 与 `latest-mac.yml`。
 - `installer-win-x64` 包含 Windows NSIS 安装包、blockmap 与 `latest.yml`。
 
-临时产物保留七天。正式安装包可在 Releases 下载。常规 [CI](https://github.com/yzbcs/NEU-Dela/actions/workflows/ci.yml) 在 Linux 上对 `main` 和 Pull Request 执行类型检查与生产构建。
+临时产物保留七天。正式安装包可在 Releases 下载。常规 [CI](https://github.com/yzbcs/NEU-Dot/actions/workflows/ci.yml) 在 Linux 上对 `main` 和 Pull Request 执行类型检查与生产构建。

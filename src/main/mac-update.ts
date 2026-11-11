@@ -41,7 +41,7 @@ export class MacZipUpdater extends AppUpdater {
     if (
       file.url.protocol !== 'https:' ||
       file.url.hostname !== 'github.com' ||
-      !file.url.pathname.startsWith('/yzbcs/NEU-Dela/releases/download/')
+      !file.url.pathname.startsWith('/yzbcs/NEU-Dot/releases/download/')
     ) {
       throw new Error('更新包来源与 NEU Dot 官方发布地址不一致');
     }

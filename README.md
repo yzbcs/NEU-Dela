@@ -11,30 +11,30 @@
 <p align="center">面向东北大学本科生与研究生 · 本地优先 · macOS / Windows</p>
 
 <p align="center">
-  <a href="https://github.com/yzbcs/NEU-Dela/releases/latest"><img src="https://img.shields.io/github/v/release/yzbcs/NEU-Dela?style=flat-square&amp;label=release&amp;color=315f70" alt="最新发布版本" /></a>
-  <a href="https://github.com/yzbcs/NEU-Dela/actions/workflows/ci.yml"><img src="https://github.com/yzbcs/NEU-Dela/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI 构建状态" /></a>
+  <a href="https://github.com/yzbcs/NEU-Dot/releases/latest"><img src="https://img.shields.io/github/v/release/yzbcs/NEU-Dot?style=flat-square&amp;label=release&amp;color=315f70" alt="最新发布版本" /></a>
+  <a href="https://github.com/yzbcs/NEU-Dot/actions/workflows/ci.yml"><img src="https://github.com/yzbcs/NEU-Dot/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI 构建状态" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-73877b?style=flat-square" alt="macOS 与 Windows" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.7/NEU-Dot-0.7.7-mac-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
-  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.7/NEU-Dot-0.7.7-win-x64.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
-  <a href="https://github.com/yzbcs/NEU-Dela/releases/latest">全部下载</a> ·
+  <a href="https://github.com/yzbcs/NEU-Dot/releases/download/v0.7.8/NEU-Dot-0.7.8-mac-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dot/releases/download/v0.7.8/NEU-Dot-0.7.8-win-x64.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dot/releases/latest">全部下载</a> ·
   <a href="docs/usage.md">使用指南</a> ·
-  <a href="https://github.com/yzbcs/NEU-Dela/issues">反馈</a>
+  <a href="https://github.com/yzbcs/NEU-Dot/issues">反馈</a>
 </p>
 
 ![暖白纸感的 NEU Dot 介绍横幅与真实工作台首页](assets/screenshots/readme-banner.svg)
 
-> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.7**，安装包未签名。
+> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.8**，安装包未签名。
 
 应用已启用 **NEU Dot** 名称，并加入应用内更新提醒、下载进度与重启安装。0.7.6 及更早版本需要先手动安装一次 0.7.7，后续版本可通过应用内更新。
 
-[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.7.md)
+[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.8.md)
 
 ## 下载
 
-在 [最新版发布页](https://github.com/yzbcs/NEU-Dela/releases/latest) 的 Assets 中选择对应的安装包。
+在 [最新版发布页](https://github.com/yzbcs/NEU-Dot/releases/latest) 的 Assets 中选择对应的安装包。
 
 | 平台                  | 安装包 |
 | --------------------- | ------ |
@@ -97,7 +97,7 @@
 
 0.7.2 提供 **DeepSeek、MiniMax、GLM** 快捷入口，自动填写服务地址、协议和默认模型。也可以使用自定义 OpenAI 或 Anthropic 兼容接口，按需编辑全部连接信息。
 
-![0.7.2 模型服务，展示三个快捷供应商和两类自定义入口](assets/screenshots/model-providers-light.png)
+![模型服务，展示三个快捷供应商和两类自定义入口](assets/screenshots/model-providers-light.png)
 
 聊天中的“模型设置”定位当前对话使用的服务，返回后继续编辑原草稿。学期与节次可单独修改，保留已有课程和导入来源；邮箱设置管理账号，打开设置不会自动收信。
 
@@ -120,7 +120,7 @@
 模型服务与 API Key 由使用者自行配置，支持 OpenAI Responses、Chat Completions 兼容接口和 Anthropic Messages。每个对话都可按问题使用工作台工具，引用文件与相关内容会发送给所选模型服务。文件可从聊天直接引用，也可在“本地资料”添加后读取。
 
 <details>
-<summary>查看 0.4.0 启动界面</summary>
+<summary>查看启动界面</summary>
 
 ![NEU Dot 启动加载界面](assets/screenshots/startup.png)
 
@@ -131,7 +131,7 @@
 <details>
 <summary>截图版本与演示数据</summary>
 
-截图均使用人工数据，部分画面来自更名前的版本。模型服务来自 0.7.2，设置总览来自 0.7.1，本地资料来自 0.6.0。
+截图基于 NEU Dot 0.7.8 界面重新生成，全部使用人工演示数据。AI 操作结果由本地模拟服务展示。
 
 </details>
 

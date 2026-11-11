@@ -1,6 +1,12 @@
 # 更新记录
 
-## [0.7.7](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.7) — 2026-11-11
+## [0.7.8](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.7.8) — 2026-11-11
+
+- GitHub 仓库、网站、使用指南与发布入口统一使用 NEU Dot 名称及 NEU-Dot 仓库路径。
+- 修正首次启动引导中的旧名称，重新生成项目截图和 README 横幅。
+- 更新双平台发布配置与 Mac 更新包来源校验，支持更名后的仓库更新源。
+
+## [0.7.7](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.7.7) — 2026-11-11
 
 - 增加应用内更新检查、系统通知与侧栏提醒、下载进度、取消重试及重启安装。Windows 使用 NSIS 升级，Mac 采用兼容现有未签名应用的校验与替换流程，启动失败时恢复旧应用。
 - 发布流程增加 Mac ZIP、双平台更新清单及 blockmap，公开发布前核对版本、文件大小与 SHA-512。
@@ -10,7 +16,7 @@
 - 支持导入学校导出的 Excel、Word 课表，兼容下载文件的错误扩展名，并提示合并单元格需要核对的结束节次。
 - 网页卡片与导出文件识别失败时，将课程结构、原文及失败原因接入 AI 导入流程。
 
-## [0.7.6](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.6) — 2026-11-11
+## [0.7.6](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.7.6) — 2026-11-11
 
 - 完善 AI 课表导入规则，教师、教室和时间随周次变化时分别保留对应安排，补充单双周、停课、补课和待确认信息处理。
 - AI 课表查询新增按第几周筛选，返回该周实际教师、地点与时间，校验日期和周次的一致性。
@@ -18,7 +24,7 @@
 - 修复 AI 导入已完成便利贴时丢失完成状态的问题，增加完成状态与活动提醒的校验。
 - 补充笔记原文与整理稿、清单状态、重复项、提醒时间、分段读取、部分成功后继续处理，以及邮箱和校园工具能力范围的提示。
 
-## [0.7.5](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.5) — 2026-11-10
+## [0.7.5](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.7.5) — 2026-11-10
 
 - 聊天底部新增独立供应商选择器，模型列表按供应商过滤，切换时记住各供应商刚选的模型。
 - 对话侧栏按日期分组，支持搜索标题、正文和引用文件，显示供应商、消息数与附件数。聊天标题在本地提炼简短主题，旧版默认标题自动整理，后续消息沿用已有标题。
@@ -32,17 +38,17 @@
 - 修复本科生网页导入始终打开研究生系统的问题，本科生改为打开本科教务系统；两类登录状态分别保存在本机。
 - 旧版用户升级后确认一次学生类型，已有课程、笔记、待办与资料保留。学校页面加载失败时显示网络提示。
 
-## [0.7.2](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.2) — 2026-11-08
+## [0.7.2](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.7.2) — 2026-11-08
 
 新增 DeepSeek、MiniMax、GLM 快捷模型服务配置，保留自定义 OpenAI 和 Anthropic。已有服务不受影响。
 
-## [0.7.1](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.1) — 2026-11-07
+## [0.7.1](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.7.1) — 2026-11-07
 
 移除设置中的“学习身份”入口与子页，设置调整为四组九项。校园入口页面原有的本科生、研究生切换与已保存选择继续保留。
 
 提供 Apple Silicon Mac 与 Windows x64 安装包，两端均未签名；Windows 尚未实机运行。
 
-## [0.7.0](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.7.0) — 2026-11-07
+## [0.7.0](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.7.0) — 2026-11-07
 
 设置现在先展示完整总览，再进入具体配置。聊天可直接按问题使用工作台，不再显示连接状态和开关。
 
@@ -52,7 +58,7 @@
 - 所有对话提供九个工作台工具，普通问题可直接回答，涉及个人资料时按需查询。明确保存请求、真实结果卡、撤销和 AI 不发信的范围保留。
 - 统一使用“添加文件夹”“添加文件”“本地资料”文案，文件仍保留在原位置。
 
-## [0.6.0](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.6.0) — 2026-11-07
+## [0.6.0](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.6.0) — 2026-11-07
 
 “资料与笔记”新增本地资料工作区，可在应用中浏览关联文件夹、阅读 Markdown，并围绕当前文件继续向 AI 提问。
 
@@ -62,11 +68,11 @@
 - 单独关联 Markdown 后，同目录文档链接沿用该关联。未支持嵌入预览的格式可用系统应用打开；AI 继续支持带文字层 PDF 的按页读取。
 - AI 会话继续使用 Pi 1.5.0，沿用工作台工具、来源引用、保存回执与撤销。
 
-## [0.5.1](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.1) — 2026-11-07
+## [0.5.1](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.5.1) — 2026-11-07
 
 移除侧栏导航上方重复的“我的工作台”标题，让搜索框与导航之间的间距自然收紧。
 
-## [0.5.0](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.5.0) — 2026-11-07
+## [0.5.0](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.5.0) — 2026-11-07
 
 AI 会话迁移到 Pi 1.5.0 原生 SDK，现有工作台与结果卡交互继续保留。
 
@@ -80,7 +86,7 @@ AI 会话迁移到 Pi 1.5.0 原生 SDK，现有工作台与结果卡交互继续
 - 继续支持 OpenAI Responses、Chat Completions 兼容接口和 Anthropic Messages；沿用系统加密凭据，不另存 Pi auth 文件。
 - 仅启用项目的校园工具，不加载 Pi 默认终端工具、外部 skills 或扩展资源。
 
-## [0.4.0](https://github.com/yzbcs/NEU-Dela/releases/tag/v0.4.0) — 2026-11-07
+## [0.4.0](https://github.com/yzbcs/NEU-Dot/releases/tag/v0.4.0) — 2026-11-07
 
 首个 GitHub 发布版本，提供 Apple Silicon Mac 与 Windows x64 安装包。
 

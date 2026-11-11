@@ -1,12 +1,12 @@
 # NEU Dot 使用与开发指南
 
-本文对应 **0.7.7**。[返回项目首页](../README.md) · [下载最新版](https://github.com/yzbcs/NEU-Dela/releases/latest)
+本文对应 **0.7.8**。[返回项目首页](../README.md) · [下载最新版](https://github.com/yzbcs/NEU-Dot/releases/latest)
 
 ## 安装与首次使用
 
-在 [最新版发布页](https://github.com/yzbcs/NEU-Dela/releases/latest) 选择 Apple Silicon Mac 的 DMG 或 Windows x64 安装程序。Mac 将应用拖入“应用程序”后打开。Windows 按安装程序选择安装目录。0.7.6 及更早版本升级时，需要从系统托盘退出旧应用，再运行 0.7.7 安装程序，沿用原安装目录及安装范围。安装 0.7.7 后可通过应用内更新升级后续版本。应用从当前 Windows 用户的 `%APPDATA%\NEU Dola` 读取工作台数据，更新前可复制该目录备份。
+在 [最新版发布页](https://github.com/yzbcs/NEU-Dot/releases/latest) 选择 Apple Silicon Mac 的 DMG 或 Windows x64 安装程序。Mac 将应用拖入“应用程序”后打开。Windows 按安装程序选择安装目录。0.7.6 及更早版本升级时，需要从系统托盘退出旧应用，再运行最新版安装程序，沿用原安装目录及安装范围。安装 0.7.7 后可通过应用内更新升级后续版本。应用从当前 Windows 用户的 `%APPDATA%\NEU Dola` 读取工作台数据，更新前可复制该目录备份。
 
-Mac 与 Windows 安装包均已生成，但尚未签名，系统可能提示无法验证发布者；Windows 尚未实机运行。遇到问题时，可在仓库 [Issues](https://github.com/yzbcs/NEU-Dela/issues) 提供系统版本、应用版本和复现步骤。
+Mac 与 Windows 安装包均已生成，但尚未签名，系统可能提示无法验证发布者；Windows 尚未实机运行。遇到问题时，可在仓库 [Issues](https://github.com/yzbcs/NEU-Dot/issues) 提供系统版本、应用版本和复现步骤。
 
 首次打开先选择本科生或研究生，再进入“工作台首页”。这一选择统一用于课表网页导入、校园服务与 AI 助手的身份上下文，可在“设置 → 学生类型”修改。旧版用户升级后也需确认一次，已有课表、笔记、待办与资料保留。课表、待办和笔记可直接使用，AI 与邮箱按需配置。应用加载失败时，启动页会显示原因并提供重试按钮。
 

@@ -680,7 +680,7 @@ export function SettingsPage({
               className="settings-overview-row"
               onClick={() =>
                 void workspace()
-                  .openWebsite('https://github.com/yzbcs/NEU-Dela/blob/main/docs/usage.md')
+                  .openWebsite('https://github.com/yzbcs/NEU-Dot/blob/main/docs/usage.md')
                   .catch(onError)
               }
             >
@@ -695,7 +695,7 @@ export function SettingsPage({
               className="settings-overview-row"
               onClick={() =>
                 void workspace()
-                  .openWebsite('https://github.com/yzbcs/NEU-Dela/issues')
+                  .openWebsite('https://github.com/yzbcs/NEU-Dot/issues')
                   .catch(onError)
               }
             >
@@ -747,7 +747,7 @@ export function SettingsPage({
                 className="secondary-button"
                 onClick={() =>
                   void workspace()
-                    .openWebsite('https://github.com/yzbcs/NEU-Dela/releases')
+                    .openWebsite('https://github.com/yzbcs/NEU-Dot/releases')
                     .catch(onError)
                 }
               >
@@ -756,7 +756,7 @@ export function SettingsPage({
               <button
                 className="text-button"
                 onClick={() =>
-                  void workspace().openWebsite('https://github.com/yzbcs/NEU-Dela').catch(onError)
+                  void workspace().openWebsite('https://github.com/yzbcs/NEU-Dot').catch(onError)
                 }
               >
                 项目主页 <ExternalLink size={13} />

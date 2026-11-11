@@ -28,7 +28,7 @@ export function StudentOnboarding({
     <main className="student-onboarding" data-onboarding="student-type">
       <section className="student-onboarding-card" aria-labelledby="student-onboarding-title">
         <img src={appIcon} alt="" width="60" height="60" draggable={false} />
-        <p className="eyebrow">WELCOME TO NEU-DELA</p>
+        <p className="eyebrow">欢迎使用 NEU Dot</p>
         <h1 id="student-onboarding-title">先选择你的学生类型</h1>
         <p>课表导入、校园入口和 AI 助手会使用同一份选择。</p>
         <StudentTypeChoices value={degree} disabled={busy} onChange={setDegree} />
