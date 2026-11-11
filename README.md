@@ -17,8 +17,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.5/NEU-Dela-0.7.5-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
-  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.5/NEU-Dela.Setup.0.7.5.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.6/NEU-Dela-0.7.6-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dela/releases/download/v0.7.6/NEU-Dela.Setup.0.7.6.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
   <a href="https://github.com/yzbcs/NEU-Dela/releases/latest">全部下载</a> ·
   <a href="docs/usage.md">使用指南</a> ·
   <a href="https://github.com/yzbcs/NEU-Dela/issues">反馈</a>
@@ -26,9 +26,9 @@
 
 ![暖白纸感的 NEU-Dela 介绍横幅与真实工作台首页](assets/screenshots/readme-banner.svg)
 
-> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.5**，安装包未签名。
+> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.6**，安装包未签名。
 
-[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.5.md)
+[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.6.md)
 
 ## 下载
 

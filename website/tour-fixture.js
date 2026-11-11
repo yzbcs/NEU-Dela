@@ -179,7 +179,7 @@
       mailCached: async () => clone(mailPage()),
       mailRead: async () => { mail.seen = true; return clone(mail); },
       setDegree: async degree => { w.degree = degree; w.degreeConfirmed = true; publish(); },
-      getAppInfo: async () => ({version: '0.7.5', dataDirectory: '/演示工作台'}),
+      getAppInfo: async () => ({version: '0.7.6', dataDirectory: '/演示工作台'}),
     },
   };
 })();

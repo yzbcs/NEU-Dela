@@ -26,7 +26,7 @@ const chunk = {
   length: z.number().int().min(1).max(30000).default(12000),
 };
 const schemas = {
-  create_todo: todoInput.omit({ id: true, done: true }).extend({
+  create_todo: todoInput.omit({ id: true }).extend({
     detail: z.string().max(10000).default(''),
     color: z.enum(['yellow', 'blue', 'green', 'pink']).default('yellow'),
     dueAt: z
@@ -35,6 +35,12 @@ const schemas = {
       .describe('留空表示不设时间；可用带时区的 ISO 时间，或北京时间 YYYY-MM-DDTHH:mm。'),
     reminder: z.boolean().default(false),
     repeat: z.enum(['none', 'daily', 'weekdays', 'weekly']).default('none'),
+    done: z
+      .boolean()
+      .default(false)
+      .describe(
+        '导入清单的完成状态，[x] 为 true，[ ] 为 false；已完成记录使用 reminder=false、repeat=none。',
+      ),
   }),
   add_courses: addCoursesInput,
   propose_timetable_import: z.object({
@@ -45,9 +51,9 @@ const schemas = {
     courses: z
       .array(
         courseInput.omit({ id: true }).extend({
-          weeks: z.string().default(''),
-          location: z.string().default(''),
-          teacher: z.string().default(''),
+          weeks: courseInput.shape.weeks.default(''),
+          location: courseInput.shape.location.default(''),
+          teacher: courseInput.shape.teacher.default(''),
           detail: z.string().default(''),
         }),
       )
@@ -65,6 +71,7 @@ const schemas = {
     module: z.enum(['overview', 'timetable', 'todos', 'notes', 'resources', 'mail', 'campus']),
     query: z.string().max(200).default(''),
     date: z.iso.date().optional(),
+    week: z.number().int().min(1).max(60).optional(),
     status: z.enum(['all', 'pending', 'completed']).default('all'),
     category: z.string().max(100).optional(),
     offset: z.number().int().min(0).default(0),
@@ -98,15 +105,15 @@ const schemas = {
 };
 const descriptions: Record<keyof typeof schemas, string> = {
   propose_timetable_import:
-    '根据用户要求从文件识别课表后准备可预览、编辑的导入草稿。先读取文件并查询当前学期与节次。day 为星期一至日的 1-7，start/end 为第 1-12 节。星期或节次不确定的课程列入 unresolvedCourses 并说明原因，不猜测填入 courses；courses 只接收已核实的安排。未知周次、学期、首周周一留空。草稿由用户预览核对保存。',
+    '根据用户要求从文件识别课表后准备可预览、编辑的导入草稿。先读取文件并查询当前学期与节次。day 为星期一至日的 1-7，start/end 为第 1-12 节。教师、教室或时间随周次变化时按对应关系拆成多条 courses，去重需同时核对全部字段。星期或节次不确定的课程列入 unresolvedCourses 并说明原因，不猜测填入 courses；courses 只接收已核实的安排。未知教师或地点留空并在 detail 说明。未知周次、学期、首周周一留空。草稿由用户预览核对保存。',
   create_todo:
-    '在用户明确要求记录、添加待办或设置提醒时新建一条便利贴，返回实际保存的记录。title 必填；无时间时 dueAt 留空，reminder=false，repeat=none。日期按北京时间解释；提醒或重复必须有明确时间，不猜测缺失时间。不会修改或删除既有便利贴。',
+    '在用户明确要求记录、添加待办或设置提醒时新建一条便利贴，返回实际保存的记录。title 必填，done 默认为 false，导入已完成清单用 true，此时 reminder=false、repeat=none。无时间时 dueAt 留空，reminder=false，repeat=none。dueAt 同时用于事项时间和提醒触发；不同截止与提醒时间需要先核对。日期按北京时间解释；提醒或重复必须有明确时间，不猜测缺失时间。不会修改或删除既有便利贴。',
   add_courses:
-    '在用户明确要求添加课程时，将 courses 整批追加到当前课表，保留已有课程、学期、节次与来源。每条必须有 name、day（周一=1至周日=7）、start/end（第1至12节）、weeks（如1-16或1-16单周）。先查课表确认学期和自定义节次；不能把任意钟点擅自近似成某节。空课表还需 term 和 firstMonday（第一周周一日期）；缺少这些信息先询问用户。完全相同课程不会重复添加。返回保存后的实际上课时间与冲突提示；不会覆盖整张课表。',
+    '在用户明确要求添加课程时，将 courses 整批追加到当前课表，保留已有课程、学期、节次与来源。每条必须有 name、day（周一=1至周日=7）、start/end（第1至12节）、weeks（如1-16或1-16单周）。教师、地点或上课时间随周次变化时分别记录，保留各自对应关系。先查课表确认学期和自定义节次；不能把任意钟点擅自近似成某节。空课表还需 term 和 firstMonday（第一周周一日期）；缺少这些信息先询问用户。完全相同课程不会重复添加。返回保存后的实际上课时间与冲突提示；不会覆盖整张课表。',
   create_note:
     '在用户明确要求保存、记录或新建笔记时创建笔记，title 和 body 必填，category 可指定笔记本，留空表示未分类。返回实际保存的笔记。不会覆盖或修改已有笔记。',
   query_workspace:
-    '查询最新工作台数据。overview 查看各模块数量；timetable 用 date 指定北京时间日期，返回当日实际周次课程和上课时间，不指定则返回全学期安排；todos 可用 status=pending/completed/all 筛选未完成/已完成/全部，用 date 只查当天到期事项（不含无时间或逾期事项）；notes 包含笔记和备忘录，query 搜索标题与正文，category 精确筛选笔记本；resources 查本地资料；mail 查邮箱账号与本地缓存目录；campus 查校园入口。支持 offset、limit，nextOffset 非空时还有结果。先查目录得到真实 ID，再读取正文。',
+    '查询最新工作台数据。overview 查看各模块数量；timetable 用 date 指定北京时间日期或 week 指定第1-60周，返回实际适用的课程、教师、地点和上课时间，均不指定则返回全学期安排，日期与周次同时指定时需一致；todos 可用 status=pending/completed/all 筛选未完成/已完成/全部，用 date 只查当天到期事项（不含无时间或逾期事项）；notes 包含笔记和备忘录，query 搜索标题与正文，category 精确筛选笔记本；resources 查本地资料；mail 查邮箱账号与本地缓存目录；campus 查校园入口。支持 offset、limit，nextOffset 非空时还有结果。先查目录得到真实 ID，再读取正文。',
   read_workspace_item:
     '读取指定笔记或便利贴的完整内容。ID 必须来自工作台查询；长内容按 offset、length 分段读取，返回 nextOffset。',
   list_files:
@@ -270,6 +277,8 @@ export class WorkbenchReader {
         data: {
           status: 'draft',
           courseCount: input.courses.length,
+          arrangementCount: input.courses.length,
+          distinctCourseCount: new Set(input.courses.map((course) => course.name)).size,
           unresolvedCourses: input.unresolvedCourses,
           message: '课表草稿已准备好，用户可点击预览并保存。',
         },
@@ -279,10 +288,11 @@ export class WorkbenchReader {
     }
     if (name === 'create_todo') {
       const input = schemas.create_todo.parse(args);
+      if (input.done && (input.reminder || input.repeat !== 'none'))
+        throw new Error('已完成的历史事项请使用 reminder=false、repeat=none；后续提醒需另行核对。');
       const id = this.workspace.saveTodo({
         ...input,
         dueAt: normalizeTodoTime(input.dueAt),
-        done: false,
       });
       const todo = structuredClone(w.todos.find((item) => item.id === id)!);
       const detail = `已添加便利贴「${todo.title}」`;
@@ -365,8 +375,16 @@ export class WorkbenchReader {
       };
     }
     if (name === 'query_workspace') {
-      const { module, query, date, status, category, offset, limit } =
-        schemas.query_workspace.parse(args);
+      const {
+        module,
+        query,
+        date,
+        week: requestedWeek,
+        status,
+        category,
+        offset,
+        limit,
+      } = schemas.query_workspace.parse(args);
       const match = (value: unknown) =>
         JSON.stringify(value).toLowerCase().includes(query.toLowerCase());
       let items: unknown[];
@@ -384,12 +402,18 @@ export class WorkbenchReader {
         };
       if (module === 'timetable') {
         const table = w.timetable;
-        const week = date ? weekAt(table.firstMonday, date) : null;
+        const dateWeek = date ? weekAt(table.firstMonday, date) : null;
+        if (requestedWeek !== undefined && dateWeek !== null && requestedWeek !== dateWeek)
+          throw new Error('指定的日期与周次不一致，请核对学期第一周日期及查询范围。');
+        const week = requestedWeek ?? dateWeek;
         const day = date ? ((new Date(dateNumber(date)).getUTCDay() + 6) % 7) + 1 : null;
         const periods = table.periods ?? periodTimes;
         items = table.courses
           .filter(
-            (c) => match(c) && (!date || (c.day === day && parseWeeks(c.weeks).includes(week!))),
+            (c) =>
+              match(c) &&
+              (week === null || parseWeeks(c.weeks).includes(week)) &&
+              (!date || c.day === day),
           )
           .map((course) => ({
             ...course,
@@ -407,7 +431,7 @@ export class WorkbenchReader {
           message: table.firstMonday ? undefined : '尚未设置学期首周日期，不能确定某天的课程。',
         };
         source.kind = 'timetable';
-        source.label = date ? date + ' 的课表' : '学期课表';
+        source.label = date ? date + ' 的课表' : week !== null ? `第 ${week} 周的课表` : '学期课表';
       } else if (module === 'todos') {
         items = w.todos
           .filter(

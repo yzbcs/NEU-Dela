@@ -30,9 +30,13 @@ export const courseInput = z.object({
   day: z.number().int().min(1).max(7),
   start: z.number().int().min(1).max(12),
   end: z.number().int().min(1).max(12),
-  weeks: z.string(),
-  location: z.string(),
-  teacher: z.string(),
+  weeks: z
+    .string()
+    .describe(
+      '本条授课安排适用的周次，保留离散周与单双周；教师、地点或时间随周次变化时拆成多条安排。',
+    ),
+  location: z.string().describe('与本条周次和时间对应的教室或地点，未知时留空。'),
+  teacher: z.string().describe('与本条周次和时间对应的教师；不同周由不同教师授课时分别记录。'),
   detail: z.string(),
 });
 
@@ -40,8 +44,8 @@ export const addCoursesInput = z.object({
   courses: z
     .array(
       courseInput.omit({ id: true }).extend({
-        location: z.string().default(''),
-        teacher: z.string().default(''),
+        location: courseInput.shape.location.default(''),
+        teacher: courseInput.shape.teacher.default(''),
         detail: z.string().default(''),
       }),
     )
