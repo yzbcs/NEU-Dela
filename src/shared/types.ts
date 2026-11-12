@@ -95,6 +95,7 @@ export interface AppState {
 }
 
 export interface DolaApi {
+  platform: NodeJS.Platform;
   workspace: WorkspaceApi;
   updates: import('./updates').UpdateApi;
   load(): Promise<AppState>;

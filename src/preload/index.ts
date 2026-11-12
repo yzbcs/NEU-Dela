@@ -47,6 +47,7 @@ const workspaceMethods: (keyof WorkspaceApi)[] = [
 ];
 
 contextBridge.exposeInMainWorld('dola', {
+  platform: process.platform,
   updates: {
     getState: () => ipcRenderer.invoke('dola:updates:get'),
     check: () => ipcRenderer.invoke('dola:updates:check'),

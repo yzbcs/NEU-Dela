@@ -2,7 +2,9 @@
   height: 100%;
   overflow: auto;
   padding: 32px 34px 32px;
-  background: var(--page);
+  background:
+    radial-gradient(1100px 480px at 88% -12%, var(--ambient-teal), transparent 62%),
+    radial-gradient(900px 420px at -8% 112%, var(--ambient-amber), transparent 58%), var(--page);
 }
 .work-header {
   display: flex;
@@ -23,6 +25,10 @@
   line-height: 1.8;
   color: var(--text-muted);
   margin: 0;
+}
+.work-header .eyebrow {
+  color: var(--accent);
+  font-weight: 650;
 }
 .work-actions {
   display: flex;

@@ -9,7 +9,13 @@
   margin-bottom: 16px;
   border: 1px solid var(--blue-border);
   border-radius: 16px;
-  background: linear-gradient(110deg, var(--surface), var(--blue-soft));
+  background: linear-gradient(
+    115deg,
+    var(--surface) 0%,
+    var(--blue-soft) 58%,
+    var(--green-soft) 100%
+  );
+  box-shadow: var(--shadow-soft);
 }
 .dashboard-focus-icon {
   display: grid;
@@ -18,9 +24,9 @@
   height: 48px;
   flex-shrink: 0;
   border-radius: 14px;
-  background: var(--surface);
-  color: var(--accent);
-  box-shadow: 0 3px 12px var(--shadow-color);
+  background: var(--accent-gradient);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-soft);
 }
 .dashboard-focus-copy {
   flex: 1;
@@ -74,7 +80,14 @@
   gap: 4px 10px;
   padding: 13px 14px;
   border-color: var(--border-soft);
-  border-radius: 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--surface), var(--surface-soft));
+  box-shadow: var(--shadow-soft);
+}
+.dashboard-page .dashboard-stat:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-2px);
 }
 .dashboard-page .dashboard-stat-icon {
   grid-column: 1;
@@ -107,26 +120,43 @@
 .dashboard-page .dashboard-stat > small svg {
   display: none;
 }
+.dashboard-page .dashboard-stat:hover > small svg {
+  display: block;
+}
 .dashboard-main-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.75fr) minmax(270px, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 20px;
 }
 .dashboard-main-grid .dashboard-card {
+  display: flex;
+  flex-direction: column;
   border-color: var(--border-soft);
-  border-radius: 15px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+}
+.dashboard-main-grid .dashboard-card > .dashboard-card-header {
+  flex-shrink: 0;
+}
+.dashboard-main-grid .dashboard-todos .dashboard-todo-list,
+.dashboard-main-grid .dashboard-todos .dashboard-empty {
+  flex: 1;
 }
 .dashboard-main-grid .dashboard-agenda {
   margin-bottom: 0;
 }
 .dashboard-page .dashboard-secondary-grid {
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.75fr) minmax(270px, 1fr);
+  align-items: stretch;
 }
 .dashboard-secondary-grid .dashboard-card {
+  display: flex;
+  flex-direction: column;
   border-color: var(--border-soft);
   background: var(--surface);
+  box-shadow: var(--shadow-soft);
 }
 .dashboard-page .agenda-days {
   gap: 5px;
@@ -138,10 +168,10 @@
   background: var(--surface-soft);
 }
 .dashboard-page .agenda-days button[aria-pressed='true'] {
-  border-color: var(--accent-fill);
-  background: var(--accent-fill);
+  border-color: transparent;
+  background: var(--accent-gradient);
   color: var(--on-accent);
-  box-shadow: 0 3px 8px var(--shadow-color);
+  box-shadow: var(--shadow-soft);
 }
 .dashboard-page .agenda-days button > strong {
   font-size: 15px;
@@ -153,10 +183,17 @@
 .dashboard-page .agenda-items {
   max-height: 320px;
 }
+.dashboard-card-header h2 svg {
+  color: var(--accent);
+}
 .dashboard-page .agenda-item {
   grid-template-columns: 76px minmax(0, 1fr) auto;
   gap: 9px;
   padding: 12px 6px;
+  border-radius: 10px;
+}
+.dashboard-page .agenda-item:hover {
+  background: var(--surface-soft);
 }
 .dashboard-page .agenda-course {
   border-left: 3px solid var(--course-marker);
@@ -213,6 +250,10 @@
 }
 @media (max-width: 1250px) {
   .dashboard-main-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .dashboard-page .dashboard-secondary-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
   }

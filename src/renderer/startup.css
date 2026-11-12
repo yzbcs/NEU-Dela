@@ -15,6 +15,9 @@
 body:has(.startup-screen) {
   margin: 0;
 }
+:root[data-platform='win32'] .startup-screen {
+  padding-top: 80px;
+}
 .startup-card {
   text-align: center;
   width: min(400px, 100%);
