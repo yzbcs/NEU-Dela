@@ -17,8 +17,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yzbcs/NEU-Dot/releases/download/v0.7.8/NEU-Dot-0.7.8-mac-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
-  <a href="https://github.com/yzbcs/NEU-Dot/releases/download/v0.7.8/NEU-Dot-0.7.8-win-x64.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dot/releases/download/v0.7.9/NEU-Dot-0.7.9-mac-arm64.dmg"><strong>↓ 下载 macOS DMG</strong></a> ·
+  <a href="https://github.com/yzbcs/NEU-Dot/releases/download/v0.7.9/NEU-Dot-0.7.9-win-x64.exe"><strong>↓ 下载 Windows 安装包</strong></a> ·
   <a href="https://github.com/yzbcs/NEU-Dot/releases/latest">全部下载</a> ·
   <a href="docs/usage.md">使用指南</a> ·
   <a href="https://github.com/yzbcs/NEU-Dot/issues">反馈</a>
@@ -26,11 +26,11 @@
 
 ![暖白纸感的 NEU Dot 介绍横幅与真实工作台首页](assets/screenshots/readme-banner.svg)
 
-> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.8**，安装包未签名。
+> 面向东北大学学生的个人开发项目。提供 Apple Silicon Mac 与 Windows x64 安装包，当前版本为 **0.7.9**，安装包未签名。
 
 应用已启用 **NEU Dot** 名称，并加入应用内更新提醒、下载进度与重启安装。0.7.6 及更早版本需要先手动安装一次 0.7.7，后续版本可通过应用内更新。
 
-[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.8.md)
+[功能演示](#功能演示) · [开始使用](#开始使用) · [本地开发](#本地开发) · [更新说明](docs/releases/v0.7.9.md)
 
 ## 下载
 
@@ -81,11 +81,11 @@
 
 ![深色模式下的笔记本、笔记列表与正文编辑](assets/screenshots/notes-dark.png)
 
-在“本地资料”中添加课程或项目文件夹，按需展开目录，点击 Markdown 就能阅读正文、表格、代码块和本地图片。支持预览／源码切换、文内查找、相对文档链接和刷新，也能用系统应用打开文件。
+在“本地资料”中添加课程或项目文件夹，按需展开目录，或直接拖入 PDF、Markdown 文件阅读。PDF 支持翻页、缩放和选中文字，Markdown 支持预览／源码切换、文内查找、相对文档链接及本地图片。主导航栏和资料目录可调宽、折叠并记住设置。
 
 ![本地资料：文件夹目录与 Markdown 阅读](assets/screenshots/local-files-light.png)
 
-文件保留在原目录，应用笔记保存在工作台中。点击“询问这份资料”会带着当前文件准备提问草稿，发送后 AI 才读取相关内容；新增的文件读取来源和本地文件搜索结果可直接回到对应文件。PDF 等格式可用系统应用查看。
+文件保留在原目录，四色高亮与批注独立保存在本机。选中文字可翻译，PDF 与文本可生成 AI 总结并查看读取范围。自动翻译默认开启，可在阅读工具栏关闭。点击“询问资料”会带着当前文件准备提问草稿，发送后 AI 按问题读取相关内容。
 
 邮箱支持学校云邮箱、QQ、163 和自定义 IMAP/SMTP，可管理多账号、阅读邮件、下载附件、回复和发信。校园入口跟随全局学生类型，展示对应的常用服务。
 

@@ -113,9 +113,9 @@
 
   window.dola = {
     updates: {
-      getState: async () => ({status: 'unavailable', currentVersion: '0.7.8'}),
-      check: async () => ({status: 'unavailable', currentVersion: '0.7.8'}),
-      download: async () => ({status: 'unavailable', currentVersion: '0.7.8'}),
+      getState: async () => ({status: 'unavailable', currentVersion: '0.7.9'}),
+      check: async () => ({status: 'unavailable', currentVersion: '0.7.9'}),
+      download: async () => ({status: 'unavailable', currentVersion: '0.7.9'}),
       cancel: async () => {},
       install: async () => {},
       confirmLaunch: async () => {},
@@ -189,7 +189,7 @@
       mailCached: async () => clone(mailPage()),
       mailRead: async () => { mail.seen = true; return clone(mail); },
       setDegree: async degree => { w.degree = degree; w.degreeConfirmed = true; publish(); },
-      getAppInfo: async () => ({version: '0.7.8', dataDirectory: '/演示工作台'}),
+      getAppInfo: async () => ({version: '0.7.9', dataDirectory: '/演示工作台'}),
     },
   };
 })();

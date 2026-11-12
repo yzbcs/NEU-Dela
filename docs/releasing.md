@@ -4,6 +4,8 @@ GitHub Actions 的 [Release installers](https://github.com/yzbcs/NEU-Dot/actions
 
 ## 发版
 
+发布说明记录当次功能变化与修复。安装与更新步骤发生变化时，再将相关变化写入当次发布说明。
+
 1. 更新 `package.json`、`package-lock.json`、README 和更新记录中的版本号。
 2. 将发布说明保存为 `docs/releases/v版本号.md`，提交并推送源码。
 3. 给这次提交打上与版本号相同的 `v` 标签，再推送该标签。例如版本号为 `0.7.2` 时使用以下命令。
