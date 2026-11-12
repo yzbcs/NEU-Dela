@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { readFile, readdir, realpath, stat } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import type { Store } from './store';
 import type {
@@ -33,14 +33,37 @@ export function resolveResourcePath(
   const resource = resources.find((item) => item.id === resourceId);
   if (!resource) throw new Error('资料不存在，可能已移除，请重新添加。');
   if (resource.kind === 'link') throw new Error('网页资料请在浏览器中打开。');
+  if (resource.kind === 'file') {
+    const target = resolve(resource.path);
+    if (path && resolve(dirname(target), path) !== target)
+      throw new Error('单文件资料只能读取该文件本身；如需读取其他文件，请添加对应的文件夹。');
+    return { resource, path: target };
+  }
   const root = rootPath(resource);
-  const target = resolve(root, path || (resource.kind === 'file' ? basename(resource.path) : '.'));
+  const target = resolve(root, path || '.');
   const child = relative(root, target);
   if (child === '..' || child.startsWith('..' + sep) || isAbsolute(child))
     throw new Error(
       '只能读取已添加资料范围内的相对路径；链接指向资料范围以外，请先添加对应的文件夹。',
     );
   return { resource, path: target };
+}
+
+/** 词法检查之后再核对真实路径，防止文件夹内的符号链接指向资料范围以外。 */
+export async function verifyResourcePath(
+  resources: Resource[],
+  resourceId: string,
+  path: string,
+): Promise<{ resource: Resource; path: string }> {
+  const target = resolveResourcePath(resources, resourceId, path);
+  if (target.resource.kind === 'folder') {
+    const root = await realpath(target.resource.path).catch(localError);
+    const real = await realpath(target.path).catch(localError);
+    const child = relative(root, real);
+    if (child === '..' || child.startsWith('..' + sep) || isAbsolute(child))
+      throw new Error('链接指向资料范围以外，请先添加对应的文件夹。');
+  }
+  return target;
 }
 
 function localError(error: unknown): never {
@@ -62,17 +85,17 @@ export class LocalFiles {
   constructor(private store: Pick<Store, 'workspace'>) {}
 
   resolvePath(resourceId: string, path: string) {
-    return resolveResourcePath(this.store.workspace.resources, resourceId, path);
+    return verifyResourcePath(this.store.workspace.resources, resourceId, path);
   }
 
   async getPath(resourceId: string, path: string) {
-    const target = this.resolvePath(resourceId, path);
+    const target = await this.resolvePath(resourceId, path);
     await stat(target.path).catch(localError);
     return target.path;
   }
 
   async list(resourceId: string, path: string, offset = 0): Promise<LocalDirectory> {
-    const target = this.resolvePath(resourceId, path);
+    const target = await this.resolvePath(resourceId, path);
     if (target.resource.kind !== 'folder') throw new Error('请选择已添加的文件夹。');
     const entries = (await readdir(target.path, { withFileTypes: true }).catch(localError)).sort(
       (a, b) =>
@@ -92,7 +115,7 @@ export class LocalFiles {
   }
 
   async read(resourceId: string, path: string): Promise<LocalFilePreview> {
-    const target = this.resolvePath(resourceId, path);
+    const target = await this.resolvePath(resourceId, path);
     const info = await stat(target.path).catch(localError);
     if (!info.isFile()) throw new Error('请选择文件；文件夹可以在左侧展开。');
     const extension = extname(target.path).toLowerCase();
@@ -137,13 +160,24 @@ export class LocalFiles {
     const source = hash === -1 ? href : href.slice(0, hash);
     const anchor = hash === -1 ? undefined : decodeURIComponent(href.slice(hash + 1));
     if (!source) return { kind: 'anchor', anchor: anchor ?? '' };
-    const document = this.resolvePath(resourceId, path);
+    const document = await this.resolvePath(resourceId, path);
     const destination = resolve(dirname(document.path), decodeURIComponent(source.split('?')[0]));
-    const next = slashPath(relative(rootPath(document.resource), destination));
-    const target = this.resolvePath(resourceId, next);
+    let resource = document.resource;
+    if (resource.kind === 'file' && destination !== document.path) {
+      const folder = this.store.workspace.resources.find((item) => {
+        if (item.kind !== 'folder') return false;
+        const child = relative(resolve(item.path), destination);
+        return child !== '..' && !child.startsWith('..' + sep) && !isAbsolute(child);
+      });
+      if (!folder) throw new Error('此链接指向单独文件以外的位置，请先添加包含目标的文件夹。');
+      resource = folder;
+    }
+    const next = slashPath(relative(rootPath(resource), destination));
+    const target = await this.resolvePath(resource.id, next);
     return {
       kind: 'file',
       path: relativePath(target.resource, target.path),
+      ...(resource.id !== resourceId ? { resourceId: resource.id } : {}),
       ...(anchor ? { anchor } : {}),
     };
   }
@@ -153,7 +187,7 @@ export class LocalFiles {
     if (/^data:image\/(?:png|jpeg|gif|webp|svg\+xml);base64,/i.test(source)) return source;
     const link = await this.link(resourceId, path, source);
     if (link.kind !== 'file') throw new Error('请选择本地图片。');
-    const target = this.resolvePath(resourceId, link.path);
+    const target = await this.resolvePath(link.resourceId ?? resourceId, link.path);
     const mime = imageTypes[extname(target.path).toLowerCase()];
     if (!mime) throw new Error('支持 PNG、JPEG、GIF、WebP 和 SVG 本地图片。');
     const info = await stat(target.path).catch(localError);

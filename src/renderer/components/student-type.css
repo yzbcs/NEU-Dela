@@ -52,6 +52,9 @@
   width: min(640px, 100%);
   -webkit-app-region: no-drag;
 }
+:root[data-platform='win32'] .student-onboarding {
+  padding-top: 88px;
+}
 .student-onboarding-card > img {
   margin-bottom: 24px;
 }

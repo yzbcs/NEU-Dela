@@ -1,5 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
+import {
+  mkdirSync,
+  existsSync,
+  readFileSync,
+  renameSync,
+  openSync,
+  writeSync,
+  fsyncSync,
+  closeSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { providerInput, sdkBaseUrl } from '../shared/validation';
 import { emptyWorkspace, type Workspace } from '../shared/workspace';
@@ -35,14 +44,17 @@ export class Store {
     private codec: SecretCodec,
   ) {
     mkdirSync(directory, { recursive: true });
-    if (existsSync(this.path('workspace.json')))
-      this.workspace = {
-        ...emptyWorkspace(),
-        ...JSON.parse(readFileSync(this.path('workspace.json'), 'utf8')),
-      };
-    if (existsSync(this.path('settings.json'))) {
-      const settings = JSON.parse(readFileSync(this.path('settings.json'), 'utf8'));
-      this.providers = settings.providers;
+    this.workspace = {
+      ...emptyWorkspace(),
+      ...this.readJson<Partial<Workspace>>('workspace.json', {}),
+    };
+    const settings = this.readJson<{
+      providers?: Provider[];
+      theme?: Theme;
+      imageInputDefaultsApplied?: boolean;
+    } | null>('settings.json', null);
+    if (settings) {
+      this.providers = Array.isArray(settings.providers) ? settings.providers : [];
       this.theme = settings.theme ?? 'system';
       if (!settings.imageInputDefaultsApplied) {
         this.providers = this.providers.map((provider) => ({ ...provider, supportsImages: true }));
@@ -50,35 +62,62 @@ export class Store {
       }
     }
     if (existsSync(this.path('keys.bin'))) {
-      this.keys = JSON.parse(codec.decrypt(readFileSync(this.path('keys.bin'))));
-    }
-    if (existsSync(this.path('chats.json'))) {
-      this.chats = JSON.parse(readFileSync(this.path('chats.json'), 'utf8'));
-      for (const chat of this.chats)
-        for (const message of chat.messages) {
-          if (message.state === 'streaming') {
-            message.state = 'stopped';
-            message.error = '上次生成因应用退出而中断，可以继续提问。';
-          }
-        }
-      let updatedTitles = false;
-      for (const chat of this.chats) {
-        if (!chat.messages.length || (chat.titleSummaryVersion ?? 0) >= chatTitleVersion) continue;
-        if (hasLegacyAutomaticTitle(chat)) chat.title = summarizeChatTitle(chat.messages);
-        chat.titleSummaryVersion = chatTitleVersion;
-        updatedTitles = true;
+      try {
+        this.keys = JSON.parse(codec.decrypt(readFileSync(this.path('keys.bin'))));
+      } catch {
+        this.backupCorrupt('keys.bin');
       }
-      if (updatedTitles) this.saveChats();
     }
+    const storedChats = this.readJson<Chat[] | null>('chats.json', null);
+    this.chats = Array.isArray(storedChats) ? storedChats : [];
+    for (const chat of this.chats)
+      for (const message of chat.messages) {
+        if (message.state === 'streaming') {
+          message.state = 'stopped';
+          message.error = '上次生成因应用退出而中断，可以继续提问。';
+        }
+      }
+    let updatedTitles = false;
+    for (const chat of this.chats) {
+      if (!chat.messages.length || (chat.titleSummaryVersion ?? 0) >= chatTitleVersion) continue;
+      if (hasLegacyAutomaticTitle(chat)) chat.title = summarizeChatTitle(chat.messages);
+      chat.titleSummaryVersion = chatTitleVersion;
+      updatedTitles = true;
+    }
+    if (updatedTitles) this.saveChats();
   }
 
   private path(name: string) {
     return join(this.directory, name);
   }
+  private backupCorrupt(name: string) {
+    try {
+      renameSync(this.path(name), this.path(name) + '.corrupt-' + Date.now());
+    } catch {
+      /* 备份失败时仍用默认值启动，避免整个工作台打不开。 */
+    }
+  }
+  private readJson<T>(name: string, fallback: T): T {
+    const path = this.path(name);
+    if (!existsSync(path)) return fallback;
+    try {
+      return JSON.parse(readFileSync(path, 'utf8')) as T;
+    } catch {
+      this.backupCorrupt(name);
+      return fallback;
+    }
+  }
   private write(name: string, bytes: string | Buffer) {
     const path = this.path(name);
-    writeFileSync(path + '.tmp', bytes);
-    renameSync(path + '.tmp', path);
+    const tmp = path + '.tmp';
+    const fd = openSync(tmp, 'w');
+    try {
+      writeSync(fd, typeof bytes === 'string' ? Buffer.from(bytes) : bytes);
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+    renameSync(tmp, path);
   }
   snapshot(): AppState {
     return {

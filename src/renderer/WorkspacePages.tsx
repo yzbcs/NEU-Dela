@@ -94,11 +94,16 @@ export function Modal({
   wide?: boolean;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
   useEffect(() => {
     const old = document.activeElement as HTMLElement;
-    root.current?.querySelector<HTMLElement>('input,textarea,button')?.focus();
+    const target =
+      root.current?.querySelector<HTMLElement>('input,textarea') ??
+      root.current?.querySelector<HTMLElement>('button');
+    target?.focus();
     const listener = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') close.current();
       if (event.key === 'Tab' && root.current) {
         const nodes = [
           ...root.current.querySelectorAll<HTMLElement>(

@@ -120,6 +120,12 @@ textarea:focus,
 select:focus {
   border-color: var(--focus);
 }
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
 button {
   transition:
     background 0.15s,
@@ -138,8 +144,8 @@ button:active:not(:disabled) {
 .sidebar {
   width: 232px;
   flex-shrink: 0;
-  background: var(--sidebar);
-  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--sidebar), var(--surface-soft));
+  border-right: 1px solid var(--border-soft);
   display: flex;
   flex-direction: column;
   padding: 0 18px 14px;
@@ -201,11 +207,11 @@ button:active:not(:disabled) {
   background: var(--page);
   -webkit-app-region: drag;
 }
-.main-toolbar.sidebar-hidden {
+:root[data-platform='darwin'] .main-toolbar.sidebar-hidden {
   padding-left: 84px;
 }
 .traffic-space {
-  height: 62px;
+  height: 56px;
   flex-shrink: 0;
   -webkit-app-region: drag;
 }
@@ -226,6 +232,7 @@ button:active:not(:disabled) {
   justify-content: center;
   color: var(--on-accent);
   flex-shrink: 0;
+  filter: drop-shadow(0 6px 14px var(--shadow-color));
 }
 .brand-mark img {
   width: 100%;
@@ -255,23 +262,29 @@ button:active:not(:disabled) {
   gap: 9px;
   width: 100%;
   margin: 31px 0 27px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 9px;
-  color: var(--text-strong);
+  border: 1px solid transparent;
+  background: var(--accent-gradient);
+  border-radius: 10px;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 600;
   padding: 12px;
+  box-shadow: var(--shadow-soft);
 }
 .new-chat:hover {
-  background: var(--hover);
-  box-shadow: 0 3px 12px var(--shadow-color);
+  filter: brightness(1.06);
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-1px);
 }
 .new-chat > span {
   margin-left: auto;
   font-size: 10px;
-  color: var(--text-muted);
+  color: inherit;
+  opacity: 0.8;
   letter-spacing: 1px;
+  background: light-dark(#ffffff2e, #ffffff1f);
+  padding: 2px 6px;
+  border-radius: 5px;
 }
 .workspace-nav {
   flex-shrink: 1;
@@ -304,7 +317,13 @@ button:active:not(:disabled) {
   background: var(--selected);
   color: var(--text-strong);
   font-weight: 650;
-  box-shadow: inset 3px 0 0 var(--accent);
+  border-radius: 10px;
+  box-shadow:
+    inset 3px 0 0 var(--accent),
+    0 1px 5px var(--shadow-color);
+}
+.nav-item.active svg {
+  color: var(--accent);
 }
 .nav-item:not(:disabled):hover {
   background: var(--hover);
@@ -385,6 +404,19 @@ button:active:not(:disabled) {
   flex-direction: column;
   background: var(--page);
 }
+:root[data-platform='win32'] {
+  --window-titlebar-height: 40px;
+}
+:root[data-platform='win32'] .main-toolbar {
+  flex-basis: var(--window-titlebar-height);
+  padding-right: 150px;
+}
+:root[data-platform='win32'] .sidebar {
+  border-right-color: var(--border-soft);
+}
+:root[data-platform='win32'] .sidebar .traffic-space {
+  height: var(--window-titlebar-height);
+}
 .chat-header {
   height: 76px;
   display: flex;
@@ -457,7 +489,10 @@ button:active:not(:disabled) {
   font-size: 32px;
   letter-spacing: -0.8px;
   line-height: 1.4;
-  color: var(--text-strong);
+  background-image: linear-gradient(100deg, var(--text-strong) 35%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   font-weight: 620;
   margin: 18px 0 12px;
 }
@@ -479,21 +514,37 @@ button:active:not(:disabled) {
   display: flex;
   flex-direction: column;
   text-align: left;
-  border: 1px solid var(--border);
-  border-radius: 11px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
   background: var(--surface);
   padding: 19px 17px;
   min-height: 118px;
   color: var(--text);
+  box-shadow: var(--shadow-soft);
 }
 .starter-grid > button:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 5px 17px var(--shadow-color);
+  box-shadow: var(--shadow-lift);
   background: var(--hover);
+  transform: translateY(-2px);
 }
 .starter-icon {
-  color: var(--text-secondary);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--blue-soft);
+  color: var(--blue-text);
   margin-bottom: 15px;
+}
+.starter-grid > button:nth-child(2) .starter-icon {
+  background: var(--green-soft);
+  color: var(--green-text);
+}
+.starter-grid > button:nth-child(3) .starter-icon {
+  background: var(--violet-soft);
+  color: var(--violet-text);
 }
 .starter-grid strong {
   font-size: 12px;
@@ -556,13 +607,15 @@ button:active:not(:disabled) {
   margin: 0 auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 7px 32px var(--shadow-color);
-  border-radius: 14px;
+  box-shadow: var(--shadow-lift);
+  border-radius: 16px;
   padding: 16px 17px 12px;
 }
 .composer:focus-within {
   border-color: var(--focus);
-  box-shadow: 0 5px 24px var(--focus-ring);
+  box-shadow:
+    0 0 0 3px var(--focus-ring),
+    var(--shadow-lift);
 }
 .composer textarea {
   display: block;
@@ -600,9 +653,12 @@ button:active:not(:disabled) {
   width: 5px;
   height: 5px;
   display: block;
-  background: var(--green-fill);
+  background: var(--accent);
   border-radius: 50%;
   flex-shrink: 0;
+}
+.status-dot.idle {
+  background: var(--text-muted);
 }
 .send-area {
   display: flex;
@@ -1244,7 +1300,7 @@ button:active:not(:disabled) {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border-radius: 7px;
+  border-radius: 9px;
   padding: 10px 14px;
   font-size: 11px;
   white-space: nowrap;
@@ -1253,12 +1309,14 @@ button:active:not(:disabled) {
   background: var(--hover);
 }
 .primary-button {
-  background: var(--accent-fill);
+  background: var(--accent-gradient);
   color: var(--on-accent);
-  border-color: var(--accent-fill);
+  border-color: transparent;
+  box-shadow: var(--shadow-soft);
 }
 .primary-button:hover {
-  background: var(--accent-fill-hover);
+  filter: brightness(1.06);
+  box-shadow: var(--shadow-lift);
 }
 .secondary-button:disabled,
 .primary-button:disabled {
@@ -1318,6 +1376,24 @@ button:active:not(:disabled) {
   color: var(--text-muted);
   margin-left: 10px;
   padding: 0;
+}
+.toast > button.toast-ai-assist {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding: 7px 10px;
+  border: 1px solid var(--green-border);
+  border-radius: 7px;
+  background: var(--green-soft);
+  color: var(--green-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+.toast > button.toast-ai-assist:hover {
+  border-color: var(--border-strong);
+  background: var(--hover);
 }
 .toast-error {
   border-color: var(--rose-border);

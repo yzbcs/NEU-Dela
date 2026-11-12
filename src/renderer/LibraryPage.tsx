@@ -644,6 +644,10 @@ export function LibraryPage({
             search={search}
             onError={onError}
             onAskFile={onAskFile}
+            onClearFilters={() => {
+              setCategory('');
+              setSearch('');
+            }}
             focusResource={openedResource ?? focusResource}
           />
         </>

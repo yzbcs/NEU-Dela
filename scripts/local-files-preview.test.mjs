@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, truncate, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, truncate, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -28,6 +28,7 @@ test('PDF and Markdown resources can be read from files and folders', async (t) 
   assert.deepEqual(await files.link('markdown', '', '论文.PDF'), {
     kind: 'file',
     path: '论文.PDF',
+    resourceId: 'folder',
   });
   for (const [id, relativePath] of [
     ['pdf', ''],
@@ -39,6 +40,70 @@ test('PDF and Markdown resources can be read from files and folders', async (t) 
     assert.deepEqual(Buffer.from(preview.data), pdf);
   }
   await assert.rejects(files.read('folder', '../outside.pdf'), /资料范围/);
+});
+
+test('single-file links and images require an added folder and keep its resource identity', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'neu-reading-links-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const markdownPath = join(directory, '阅读.md');
+  const imagePath = join(directory, '图示.png');
+  const image = Buffer.from([137, 80, 78, 71]);
+  await writeFile(markdownPath, '# 阅读');
+  await writeFile(imagePath, image);
+  await writeFile(join(directory, '下一篇.md'), '# 下一节');
+  const resources = [{ id: 'markdown', kind: 'file', path: markdownPath }];
+  const files = new LocalFiles({ workspace: { resources } });
+  await assert.rejects(files.read('markdown', '下一篇.md'), /单文件资料只能读取该文件本身/);
+  await assert.rejects(files.link('markdown', '', '下一篇.md'), /请先添加包含目标的文件夹/);
+  await assert.rejects(files.image('markdown', '', '图示.png'), /请先添加包含目标的文件夹/);
+  assert.deepEqual(await files.link('markdown', '', '#章节'), { kind: 'anchor', anchor: '章节' });
+  assert.deepEqual(await files.link('markdown', '', '阅读.md#章节'), {
+    kind: 'file',
+    path: '',
+    anchor: '章节',
+  });
+  resources.push({ id: 'folder', kind: 'folder', path: directory });
+  const target = await files.link('markdown', '', '下一篇.md#下一节');
+  assert.deepEqual(target, {
+    kind: 'file',
+    path: '下一篇.md',
+    resourceId: 'folder',
+    anchor: '下一节',
+  });
+  assert.equal((await files.read(target.resourceId, target.path)).body, '# 下一节');
+  assert.equal(
+    await files.image('markdown', '', '图示.png'),
+    `data:image/png;base64,${image.toString('base64')}`,
+  );
+  assert.deepEqual(await files.link('folder', '阅读.md', '下一篇.md'), {
+    kind: 'file',
+    path: '下一篇.md',
+  });
+});
+
+test('folder symlinks cannot expose files or annotations outside the added folder', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'neu-reading-boundary-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const folder = join(directory, '资料');
+  await mkdir(folder);
+  const outside = join(directory, '外部.md');
+  await writeFile(outside, '# 外部文件');
+  await writeFile(join(folder, '阅读.md'), '# 阅读');
+  await symlink(outside, join(folder, '链接.md'));
+  const folderId = 'ba381f26-9b98-4acb-83e8-e1a9dc1aac45';
+  const files = new LocalFiles({
+    workspace: {
+      resources: [
+        { id: folderId, kind: 'folder', path: folder },
+        { id: 'markdown', kind: 'file', path: join(folder, '阅读.md') },
+      ],
+    },
+  });
+  await assert.rejects(files.read(folderId, '链接.md'), /资料范围以外/);
+  await assert.rejects(files.link(folderId, '阅读.md', '链接.md'), /资料范围以外/);
+  await assert.rejects(files.link('markdown', '', '链接.md'), /资料范围以外/);
+  const annotations = new ReadingAnnotations(join(directory, 'annotations'), files);
+  await assert.rejects(annotations.list(folderId, '链接.md'), /资料范围以外/);
 });
 
 test('large PDF files fail with a clear size limit', async (t) => {

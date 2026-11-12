@@ -99,7 +99,7 @@ export interface ReadingSummary {
   truncated: boolean;
 }
 export type LocalResourceLink =
-  | { kind: 'file'; path: string; anchor?: string }
+  | { kind: 'file'; path: string; resourceId?: string; anchor?: string }
   | { kind: 'external'; url: string }
   | { kind: 'anchor'; anchor: string };
 export interface Note {

@@ -318,7 +318,7 @@ function ChatModelPicker({
   }
   return (
     <div className="model-select">
-      <span className="status-dot" />
+      <span className={'status-dot' + (provider ? '' : ' idle')} aria-hidden="true" />
       <SelectMenu
         name="chat-provider"
         label="切换供应商"
@@ -402,6 +402,9 @@ export function App() {
   const [notificationTodoId, setNotificationTodoId] = useState<string>();
   const bottom = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const sending = useRef(false);
+  const stickToBottom = useRef(true);
+  const lastChat = useRef<string | null>(null);
   useEffect(() => {
     if (!notice || notice.error) return;
     const timer = setTimeout(() => setNotice(null), 3500);
@@ -502,6 +505,7 @@ export function App() {
       openResource(result.id);
     } else {
       navigate('chat');
+      if (result.id !== activeId) discardDraft();
       setActiveId(result.id);
       setFocusChatMessageId(result.messageId);
     }
@@ -588,15 +592,24 @@ export function App() {
       const previous = returnScroll.current;
       returnScroll.current = null;
       if (previous.chatId === activeId && chatScroll.current) {
-        chatScroll.current.scrollTop = previous.top;
+        const node = chatScroll.current;
+        node.scrollTop = previous.top;
+        stickToBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+        lastChat.current = activeId;
         return;
       }
     }
-    if (focusChatMessageId)
+    const switched = lastChat.current !== activeId;
+    lastChat.current = activeId;
+    if (focusChatMessageId) {
       document
         .querySelector(`[data-message-id="${CSS.escape(focusChatMessageId)}"]`)
         ?.scrollIntoView({ block: 'center' });
-    else bottom.current?.scrollIntoView({ behavior: 'instant' });
+      stickToBottom.current = false;
+    } else if (switched || stickToBottom.current) {
+      bottom.current?.scrollIntoView({ behavior: 'instant' });
+      stickToBottom.current = true;
+    }
   }, [chat?.messages.at(-1)?.text, activeId, settings, page, focusChatMessageId]);
 
   function fail(error: unknown) {
@@ -635,13 +648,21 @@ export function App() {
       activeProviderId: fromChat ? providerId : undefined,
     });
   }
+  function discardDraft() {
+    setPrompt('');
+    void window.dola.discardChatAttachments(attachments.map((file) => file.id)).catch(fail);
+    setAttachments([]);
+  }
   async function send() {
     setFocusChatMessageId(undefined);
-    if ((!prompt.trim() && !attachments.length) || busy || choosingAttachments) return;
+    if (sending.current || (!prompt.trim() && !attachments.length) || busy || choosingAttachments)
+      return;
     if (!provider) {
       openSettings(true);
       return;
     }
+    sending.current = true;
+    stickToBottom.current = true;
     const text = prompt;
     const files = attachments;
     let id = activeId;
@@ -667,6 +688,7 @@ export function App() {
       ]);
       fail(error);
     } finally {
+      sending.current = false;
       setPending((old) => old.filter((value) => value !== id));
     }
   }
@@ -700,7 +722,7 @@ export function App() {
   async function removeChat(item: Chat) {
     try {
       await window.dola.removeChat(item.id);
-      if (activeId === item.id) setActiveId(null);
+      setActiveId((current) => (current === item.id ? null : current));
     } catch (error) {
       fail(error);
     }
@@ -761,10 +783,7 @@ export function App() {
             setPage('chat');
             setFocusChatMessageId(undefined);
             setActiveId(null);
-
-            setPrompt('');
-            void window.dola.discardChatAttachments(attachments.map((file) => file.id)).catch(fail);
-            setAttachments([]);
+            discardDraft();
             composer.current?.focus();
           }}
         >
@@ -785,6 +804,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="工作台导航">
           <button
             className={'nav-item ' + (!settings && page === 'home' ? 'active' : '')}
+            aria-current={!settings && page === 'home' ? 'page' : undefined}
             onClick={() => navigate('home')}
           >
             <LayoutDashboard size={19} />
@@ -792,6 +812,7 @@ export function App() {
           </button>
           <button
             className={!settings && page === 'chat' ? 'nav-item active' : 'nav-item'}
+            aria-current={!settings && page === 'chat' ? 'page' : undefined}
             onClick={() => navigate('chat')}
           >
             <Sparkles size={19} />
@@ -809,6 +830,7 @@ export function App() {
               <button
                 key={String(label)}
                 className={'nav-item ' + (!settings && page === target ? 'active' : '')}
+                aria-current={!settings && page === target ? 'page' : undefined}
                 onClick={() => navigate(target as Page)}
               >
                 <NavIcon size={19} />
@@ -826,7 +848,7 @@ export function App() {
             setFocusChatMessageId(undefined);
             setSettings(null);
             setPage('chat');
-            if (item.id !== activeId) setPrompt('');
+            if (item.id !== activeId) discardDraft();
           }}
           onRemove={(item) => void removeChat(item)}
         />
@@ -881,6 +903,7 @@ export function App() {
           </div>
           <button
             className={settings ? 'nav-item active' : 'nav-item'}
+            aria-current={settings ? 'page' : undefined}
             onClick={() => openSettings()}
           >
             <Settings2 size={18} />
@@ -1046,7 +1069,16 @@ export function App() {
                 本地模拟演示 · 回复来自测试服务，不代表真实模型能力
               </div>
             )}
-            <div className="chat-scroll" ref={chatScroll}>
+            <div
+              className="chat-scroll"
+              ref={chatScroll}
+              onScroll={() => {
+                const node = chatScroll.current;
+                if (node)
+                  stickToBottom.current =
+                    node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+              }}
+            >
               {!chat?.messages.length ? (
                 <section className="welcome">
                   <div className="welcome-identity">

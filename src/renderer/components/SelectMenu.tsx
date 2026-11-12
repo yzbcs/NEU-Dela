@@ -72,8 +72,14 @@ export function SelectMenu({
     trigger.current?.focus();
   }
   function keyDown(event: KeyboardEvent) {
-    if (event.key === 'Escape' || event.key === 'Tab') {
-      if (event.key === 'Escape') event.preventDefault();
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      trigger.current?.focus();
+      return;
+    }
+    if (event.key === 'Tab') {
       setOpen(false);
       trigger.current?.focus();
     } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -84,6 +90,7 @@ export function SelectMenu({
           Math.max(1, filtered.length),
       );
     } else if (event.key === 'Enter') {
+      if (event.nativeEvent.isComposing) return;
       event.preventDefault();
       if (filtered[focused]) choose(filtered[focused]);
     }

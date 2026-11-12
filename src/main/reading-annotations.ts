@@ -42,7 +42,7 @@ export class ReadingAnnotations {
   private async target(id: string, path: string) {
     z.string().uuid().parse(id);
     z.string().max(4096).parse(path);
-    const resolved = this.files.resolvePath(id, path).path;
+    const resolved = (await this.files.resolvePath(id, path)).path;
     const [filePath, info] = await Promise.all([realpath(resolved), stat(resolved)]);
     if (!info.isFile()) throw new Error('请选择文件。');
     const key = createHash('sha256').update(filePath).digest('hex');

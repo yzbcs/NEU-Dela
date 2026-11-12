@@ -42,6 +42,17 @@ let notifiedVersion = '';
 let acknowledgedInstall = false;
 const uuid = z.string().uuid();
 const modelId = z.string().trim().min(1).max(200).optional();
+const windowBackground = () => (nativeTheme.shouldUseDarkColors ? '#151f23' : '#f2f1ed');
+const windowsTitleBarOverlay = () => ({
+  color: windowBackground(),
+  symbolColor: nativeTheme.shouldUseDarkColors ? '#b1c5c2' : '#526b6e',
+  height: 40,
+});
+
+function syncWindowChrome(win: BrowserWindow) {
+  win.setBackgroundColor(windowBackground());
+  if (process.platform === 'win32') win.setTitleBarOverlay(windowsTitleBarOverlay());
+}
 
 function registerIpc() {
   const handle = (name: string, run: (...args: any[]) => unknown) => {
@@ -90,6 +101,7 @@ function registerIpc() {
     const theme = z.enum(['light', 'dark', 'system']).parse(raw);
     service.store.setTheme(theme);
     nativeTheme.themeSource = theme;
+    if (window && !window.isDestroyed()) syncWindowChrome(window);
     service.changed();
   });
   handle('provider-save', (raw: unknown) => {
@@ -220,9 +232,17 @@ async function createWindow() {
     icon: app.isPackaged
       ? join(process.resourcesPath, 'icon.png')
       : join(app.getAppPath(), 'assets/icon.png'),
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#151f23' : '#f2f1ed',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    trafficLightPosition: { x: 20, y: 20 },
+    backgroundColor: windowBackground(),
+    titleBarStyle:
+      process.platform === 'darwin'
+        ? 'hiddenInset'
+        : process.platform === 'win32'
+          ? 'hidden'
+          : 'default',
+    ...(process.platform === 'win32'
+      ? { titleBarOverlay: windowsTitleBarOverlay(), autoHideMenuBar: true }
+      : {}),
+    trafficLightPosition: { x: 20, y: 18 },
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.cjs'),
       contextIsolation: true,
@@ -241,6 +261,7 @@ async function createWindow() {
     if (/^https?:\/\//.test(url)) void shell.openExternal(url);
     return { action: 'deny' };
   });
+  window.webContents.on('will-navigate', (event) => event.preventDefault());
   if (process.env.ELECTRON_RENDERER_URL) await window.loadURL(process.env.ELECTRON_RENDERER_URL);
   else await window.loadFile(join(import.meta.dirname, '../renderer/index.html'));
 }
@@ -294,8 +315,7 @@ app
     });
     nativeTheme.themeSource = store.theme;
     nativeTheme.on('updated', () => {
-      for (const win of BrowserWindow.getAllWindows())
-        win.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#151f23' : '#f2f1ed');
+      for (const win of BrowserWindow.getAllWindows()) syncWindowChrome(win);
     });
     service = new ChatService(store, (state) => {
       if (window && !window.isDestroyed()) window.webContents.send('dola:change', state);

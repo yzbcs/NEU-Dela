@@ -134,6 +134,7 @@ export function LocalFilesPane({
   search,
   onError,
   onAskFile,
+  onClearFilters,
   focusResource,
   providers,
   readingProviderId,
@@ -147,6 +148,7 @@ export function LocalFilesPane({
   search: string;
   onError: (error: unknown) => void;
   onAskFile: (file: { resourceId: string; path: string; title: string }) => void;
+  onClearFilters: () => void;
   focusResource?: { resourceId: string; path: string };
 }) {
   const [sidebarWidth, setSidebarWidth] = useSidebarWidth(
@@ -458,13 +460,15 @@ export function LocalFilesPane({
       const target = await api().resolveResourceLink(selected.resourceId, selected.path, href);
       if (target.kind === 'external') await api().openWebsite(target.url);
       else if (target.kind === 'anchor') scrollToAnchor(target.anchor);
-      else
+      else {
+        if (target.resourceId) onClearFilters();
         choose({
-          resourceId: selected.resourceId,
+          resourceId: target.resourceId ?? selected.resourceId,
           path: target.path,
           kind: 'file',
           anchor: target.anchor,
         });
+      }
     } catch (reason) {
       onError(reason);
     }
