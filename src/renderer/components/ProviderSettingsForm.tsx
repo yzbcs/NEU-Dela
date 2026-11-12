@@ -34,7 +34,11 @@ export function ProviderSettingsForm({
   const [status, setStatus] = useState('');
   const [action, setAction] = useState('');
   function update<K extends keyof ProviderInput>(field: K, value: ProviderInput[K]) {
-    setDraft((previous) => ({ ...previous, [field]: value }));
+    setDraft((previous) => {
+      const next = { ...previous, [field]: value };
+      if (field === 'protocol' || field === 'baseUrl') next.model = '';
+      return next;
+    });
     setStatus('');
     if (['protocol', 'baseUrl', 'apiKey'].includes(field)) {
       setModels([]);
@@ -236,7 +240,9 @@ export function ProviderSettingsForm({
                   if (result.length)
                     setDraft((previous) => ({
                       ...previous,
-                      model: previous.model || result[0].id,
+                      model: result.some((item) => item.id === previous.model)
+                        ? previous.model
+                        : result[0].id,
                     }));
                   else setStatus('服务没有返回可选模型，请手动填写模型 ID。');
                 })

@@ -74,9 +74,11 @@ export function useNoteEditor(notes: Note[], onError: (error: unknown) => void) 
     activeFlush = handle;
     if (pending.current) void flush().catch(report);
     return () => {
-      void flush().then(() => {
-        if (activeFlush === handle) activeFlush = undefined;
-      }, report);
+      void flush()
+        .catch(report)
+        .finally(() => {
+          if (activeFlush === handle) activeFlush = undefined;
+        });
     };
   }, []);
 

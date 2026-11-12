@@ -279,7 +279,8 @@ export class ChatService {
             event.message.content.some((part) => part.type === 'toolCall')
           )
             toolRounds++;
-          if (toolRounds >= 6 || toolCalls >= 12) session!.setActiveToolsByName([]);
+          if (toolRounds >= maxToolRounds || toolCalls >= maxToolCalls)
+            session!.setActiveToolsByName([]);
         } else if (event.type === 'compaction_start') {
           reply.activity ??= [];
           reply.activity.push({

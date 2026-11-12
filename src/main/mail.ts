@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import { simpleParser } from 'mailparser';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Store } from './store';
 import type {
@@ -94,6 +94,7 @@ export class MailService {
       host: account.imapHost,
       port: account.imapPort,
       secure: account.imapTls,
+      doSTARTTLS: !account.imapTls,
       auth: { user: account.username, pass: password },
       logger: false,
       connectionTimeout: 20000,
@@ -196,9 +197,15 @@ export class MailService {
           const directory = join(this.store.dataDirectory, 'mail-cache');
           mkdirSync(directory, { recursive: true });
           const path = join(directory, id + '.json');
-          const cache = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
+          let cache: Record<string, MailPage> = {};
+          try {
+            if (existsSync(path)) cache = JSON.parse(readFileSync(path, 'utf8'));
+          } catch {
+            cache = {};
+          }
           cache[folder] = result;
-          writeFileSync(path, JSON.stringify(cache));
+          writeFileSync(path + '.tmp', JSON.stringify(cache));
+          renameSync(path + '.tmp', path);
         }
         return result;
       },
@@ -207,7 +214,11 @@ export class MailService {
   }
   cached(id: string, folder: string): MailPage | null {
     const path = join(this.store.dataDirectory, 'mail-cache', id + '.json');
-    return existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8'))[folder] ?? null) : null;
+    try {
+      return existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8'))[folder] ?? null) : null;
+    } catch {
+      return null;
+    }
   }
   private async parsed(
     id: string,

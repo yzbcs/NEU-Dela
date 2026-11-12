@@ -1,7 +1,7 @@
 import { app, dialog, Notification, shell, type BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { basename, extname, join } from 'node:path';
+import { basename, extname, join, resolve } from 'node:path';
 import { z } from 'zod';
 import type { Store } from './store';
 import type { TimetableImport, WorkspaceApi } from '../shared/workspace';
@@ -210,7 +210,16 @@ export function desktopApi(
       }
     },
     async openLocal(path) {
-      const error = await shell.openPath(z.string().min(1).parse(path));
+      const target = resolve(z.string().min(1).parse(path));
+      const known = [
+        store.workspace.timetable.sourcePath,
+        ...store.workspace.resources
+          .filter((item) => item.kind !== 'link')
+          .map((item) => item.path),
+      ];
+      if (!known.some((item) => item && resolve(item) === target))
+        throw new Error('只能打开工作台记录中的文件。');
+      const error = await shell.openPath(target);
       if (error) throw new Error(error);
     },
     async listResourceDirectory(value, path, offset = 0) {

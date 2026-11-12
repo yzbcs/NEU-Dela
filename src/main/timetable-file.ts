@@ -101,17 +101,25 @@ function wordText(node: Node): string {
 }
 
 function wordTables(document: ReturnType<typeof xml>): WebTable[] {
+  const count = (value: string | null, fallback: number) => {
+    const parsed = value === null ? fallback : Number(value);
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 1000)
+      throw new Error('请选择学校导出的课程表文件');
+    return parsed;
+  };
   return elements(document, wordNs, 'tbl').map((table) => {
     const active = new Map<number, WebCell>();
     return {
       rows: children(table, 'tr').map((row) => {
-        let col = Number(
-          elements(row, wordNs, 'gridBefore')[0]?.getAttributeNS(wordNs, 'val') ?? 0,
+        let col = count(
+          elements(row, wordNs, 'gridBefore')[0]?.getAttributeNS(wordNs, 'val') ?? null,
+          0,
         );
         const cells: WebCell[] = Array.from({ length: col }, () => cell());
         for (const item of children(row, 'tc')) {
-          const span = Number(
-            elements(item, wordNs, 'gridSpan')[0]?.getAttributeNS(wordNs, 'val') ?? 1,
+          const span = count(
+            elements(item, wordNs, 'gridSpan')[0]?.getAttributeNS(wordNs, 'val') ?? null,
+            1,
           );
           const merge = elements(item, wordNs, 'vMerge')[0];
           if (merge && merge.getAttributeNS(wordNs, 'val') !== 'restart') {
@@ -127,6 +135,7 @@ function wordTables(document: ReturnType<typeof xml>): WebTable[] {
             }
           }
           col += span;
+          if (col > 1000) throw new Error('请选择学校导出的课程表文件');
         }
         return cells;
       }),

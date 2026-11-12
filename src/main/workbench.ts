@@ -17,7 +17,7 @@ import type { Store } from './store';
 import { MailService } from './mail';
 import { addCoursesInput, courseInput, todoInput, WorkspaceService } from './workspace';
 import { courseConflicts } from '../shared/agenda';
-import { resolveResourcePath } from './local-files';
+import { verifyResourcePath } from './local-files';
 import { studentProfiles } from '../shared/student-profile';
 import { readFileContent, textChunk } from './file-content';
 
@@ -241,7 +241,7 @@ export class WorkbenchReader {
     );
   }
   private resourcePath(id: string, path: string) {
-    return resolveResourcePath(this.store.workspace.resources, id, path);
+    return verifyResourcePath(this.store.workspace.resources, id, path);
   }
   async execute(name: string, raw: string, signal: AbortSignal): Promise<WorkbenchResult> {
     signal.throwIfAborted();
@@ -513,7 +513,7 @@ export class WorkbenchReader {
     }
     if (name === 'list_files') {
       const { resourceId, path, offset } = schemas.list_files.parse(args);
-      const target = this.resourcePath(resourceId, path);
+      const target = await this.resourcePath(resourceId, path);
       if (target.resource.kind !== 'folder')
         throw new Error('这项资料是单独文件，请使用读取文件。');
       const entries = (await readdir(target.path, { withFileTypes: true })).sort(
@@ -540,7 +540,7 @@ export class WorkbenchReader {
     }
     if (name === 'read_file') {
       const { resourceId, path, ...options } = schemas.read_file.parse(args);
-      const target = this.resourcePath(resourceId, path);
+      const target = await this.resourcePath(resourceId, path);
       const content = await readFileContent(target.path, options, signal);
       signal.throwIfAborted();
       return {
