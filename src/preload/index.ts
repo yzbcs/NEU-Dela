@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { DolaApi, AppState, ProviderConnectionInput, ProviderInput } from '../shared/types';
 import type { WorkspaceApi } from '../shared/workspace';
 import type { UpdateState } from '../shared/updates';
@@ -20,11 +20,19 @@ const workspaceMethods: (keyof WorkspaceApi)[] = [
   'removeNote',
   'exportNote',
   'addResources',
+  'addResourcePaths',
   'addLink',
   'removeResource',
   'openResource',
   'listResourceDirectory',
   'readResourceFile',
+  'listReadingAnnotations',
+  'addReadingAnnotation',
+  'updateReadingAnnotation',
+  'removeReadingAnnotation',
+  'translateReadingText',
+  'cancelReadingTranslation',
+  'summarizeReadingFile',
   'readResourceImage',
   'resolveResourceLink',
   'openResourcePath',
@@ -47,6 +55,7 @@ const workspaceMethods: (keyof WorkspaceApi)[] = [
 ];
 
 contextBridge.exposeInMainWorld('dola', {
+  pathForDroppedFile: (file: File) => webUtils.getPathForFile(file),
   updates: {
     getState: () => ipcRenderer.invoke('dola:updates:get'),
     check: () => ipcRenderer.invoke('dola:updates:check'),

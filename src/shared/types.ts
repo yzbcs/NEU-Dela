@@ -95,6 +95,7 @@ export interface AppState {
 }
 
 export interface DolaApi {
+  pathForDroppedFile(file: File): string;
   workspace: WorkspaceApi;
   updates: import('./updates').UpdateApi;
   load(): Promise<AppState>;

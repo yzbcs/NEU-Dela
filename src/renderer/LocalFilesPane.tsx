@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -18,6 +18,17 @@ import {
   X,
 } from 'lucide-react';
 import type { LocalDirectory, LocalFilePreview, Resource } from '../shared/workspace';
+import type { Provider } from '../shared/types';
+import { PdfViewer } from './PdfViewer';
+import {
+  ResizeHandle,
+  SidebarToggle,
+  useSidebarCollapsed,
+  useSidebarWidth,
+} from './components/ResizableSidebar';
+import { ReadingPanel, SelectionToolbar, useReadingTools } from './components/ReadingTools';
+import { ReadingSummary } from './components/ReadingSummary';
+import type { ReadingAnnotation } from '../shared/workspace';
 import './local-files.css';
 
 const api = () => window.dola.workspace;
@@ -124,7 +135,13 @@ export function LocalFilesPane({
   onError,
   onAskFile,
   focusResource,
+  providers,
+  readingProviderId,
+  readingModel,
 }: {
+  providers: Provider[];
+  readingProviderId: string;
+  readingModel: string;
   resources: Resource[];
   category: string;
   search: string;
@@ -132,6 +149,15 @@ export function LocalFilesPane({
   onAskFile: (file: { resourceId: string; path: string; title: string }) => void;
   focusResource?: { resourceId: string; path: string };
 }) {
+  const [sidebarWidth, setSidebarWidth] = useSidebarWidth(
+    'dola-files-sidebar-width',
+    240,
+    150,
+    440,
+  );
+  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed(
+    'dola-files-sidebar-collapsed',
+  );
   const [initial] = useState(savedView);
   const [selected, setSelected] = useState<Selection | undefined>(() => {
     if (focusResource)
@@ -161,9 +187,26 @@ export function LocalFilesPane({
   const [findCount, setFindCount] = useState(0);
   const body = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
+  const [pdfFocus, setPdfFocus] = useState<{ annotation: ReadingAnnotation; request: number }>();
+  useEffect(() => {
+    setPdfFocus(undefined);
+  }, [selected?.resourceId, file?.fullPath]);
+  const reading = useReadingTools({
+    file,
+    resourceId: selected?.resourceId,
+    mode,
+    setMode,
+    body,
+    providers,
+    providerId: readingProviderId,
+    model: readingModel,
+    onFocusPdf: (annotation) =>
+      setPdfFocus((value) => ({ annotation, request: (value?.request ?? 0) + 1 })),
+  });
   const loadingDirectories = useRef(new Set<string>());
   const directoryGeneration = useRef(0);
   const resource = resources.find((item) => item.id === selected?.resourceId);
+  const focusedItem = resources.find((item) => item.id === focusResource?.resourceId);
   const roots = resources.filter(
     (item) =>
       (!category || item.category === category) &&
@@ -236,13 +279,13 @@ export function LocalFilesPane({
 
   useEffect(() => {
     if (!focusResource) return;
-    const item = resources.find((candidate) => candidate.id === focusResource.resourceId);
+    const item = focusedItem;
     if (item)
       choose({
         ...focusResource,
         kind: !focusResource.path && item.kind === 'folder' ? 'folder' : 'file',
       });
-  }, [focusResource]);
+  }, [focusResource, focusedItem?.id, focusedItem?.kind]);
 
   useEffect(() => {
     if (selected && !resource) {
@@ -543,8 +586,16 @@ export function LocalFilesPane({
   const pathParts = selected?.path.split(/[\\/]/).filter(Boolean) || [];
   const parents = selected?.kind === 'file' ? pathParts.slice(0, -1) : pathParts;
   return (
-    <div className="local-files-pane">
-      <aside className="local-file-sidebar" aria-label="本地资料目录">
+    <div
+      className={'local-files-pane' + (sidebarCollapsed ? ' sidebar-collapsed' : '')}
+      style={{ '--files-sidebar-width': `${sidebarWidth}px` } as CSSProperties}
+    >
+      <aside
+        id="files-sidebar"
+        className="local-file-sidebar"
+        aria-label="本地资料目录"
+        style={{ display: sidebarCollapsed ? 'none' : undefined }}
+      >
         <div className="local-sidebar-heading">
           <div>
             <strong>本地资料</strong>
@@ -590,6 +641,16 @@ export function LocalFilesPane({
           )}
         </div>
       </aside>
+      <ResizeHandle
+        label="调整资料列表宽度"
+        width={sidebarWidth}
+        onChange={setSidebarWidth}
+        min={150}
+        max={440}
+        remaining={300}
+        initial={240}
+        collapsed={sidebarCollapsed}
+      />
       <section
         className="local-file-reader"
         data-resource-id={selected?.resourceId || ''}
@@ -597,91 +658,69 @@ export function LocalFilesPane({
         data-kind={selected?.kind === 'folder' ? 'folder' : file?.kind || ''}
         aria-label="本地文件阅读器"
       >
-        {resource && selected ? (
-          <>
-            <header className="local-reader-header">
-              <div className="local-breadcrumb" aria-label="当前资料路径">
-                <button
-                  onClick={() =>
-                    choose({
-                      resourceId: resource.id,
-                      path: '',
-                      kind: resource.kind === 'folder' ? 'folder' : 'file',
-                    })
-                  }
-                >
-                  {resource.title}
-                </button>
-                {resource.kind === 'folder' &&
-                  parents.map((part, index) => (
-                    <span key={index}>
-                      <ChevronRight size={12} />
-                      <button
-                        onClick={() =>
-                          choose({
-                            resourceId: resource.id,
-                            path: parents.slice(0, index + 1).join('/'),
-                            kind: 'folder',
-                          })
-                        }
-                      >
-                        {part}
-                      </button>
-                    </span>
-                  ))}
-              </div>
+        <div className="local-reader-toolbar">
+          <SidebarToggle
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed((value) => !value)}
+            panelId="files-sidebar"
+            panelName="资料列表"
+          />
+          {resource && selected ? (
+            <>
               <div className="local-reader-title">
-                <h2>
+                <h2 title={file?.name || resource.title}>
                   {file?.name ||
                     (selected.kind === 'folder'
                       ? pathParts.at(-1) || resource.title
                       : pathParts.at(-1) || resource.title)}
                 </h2>
-                <span className="local-readonly">本地文件 · 只读</span>
               </div>
-              <details className="local-file-location">
-                <summary>文件位置</summary>
-                <p className="local-full-path">{fullPath}</p>
-              </details>
-              <div className="local-reader-actions">
-                {file?.kind === 'markdown' && (
-                  <div className="segment-tabs local-view-switch">
-                    <button
-                      className={mode === 'preview' ? 'active' : ''}
-                      onClick={() => setMode('preview')}
-                    >
-                      预览
-                    </button>
-                    <button
-                      className={mode === 'source' ? 'active' : ''}
-                      onClick={() => setMode('source')}
-                    >
-                      源码
-                    </button>
-                  </div>
-                )}
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    void api().openResourcePath(selected.resourceId, selected.path).catch(onError)
-                  }
-                >
-                  <ExternalLink size={14} />
-                  用系统应用打开
-                </button>
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    void api()
-                      .openResourcePath(selected.resourceId, selected.path, true)
-                      .catch(onError)
-                  }
-                >
-                  在文件管理器中显示
-                </button>
-                {file && file.kind !== 'unsupported' && (
+              {file?.kind === 'markdown' && (
+                <div className="segment-tabs local-view-switch">
                   <button
-                    className="secondary-button local-ask"
+                    className={mode === 'preview' ? 'active' : ''}
+                    onClick={() => setMode('preview')}
+                  >
+                    预览
+                  </button>
+                  <button
+                    className={mode === 'source' ? 'active' : ''}
+                    onClick={() => setMode('source')}
+                  >
+                    源码
+                  </button>
+                </div>
+              )}
+              {file && file.kind !== 'unsupported' && (
+                <>
+                  <label
+                    className="reading-auto-toggle"
+                    title="选中的英文会自动发送到所选模型服务进行翻译"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={reading.autoTranslate}
+                      onChange={(event) => reading.setAutoTranslate(event.target.checked)}
+                    />
+                    自动翻译
+                  </label>
+                  <button
+                    className="text-button"
+                    onClick={() =>
+                      reading.setPanel(reading.panel === 'annotations' ? null : 'annotations')
+                    }
+                  >
+                    标注 {reading.list?.items.length ?? 0}
+                  </button>
+                  <ReadingSummary
+                    resourceId={selected.resourceId}
+                    file={file}
+                    providers={providers}
+                    providerId={readingProviderId}
+                    model={readingModel}
+                  />
+                  <button
+                    className="text-button local-ask"
                     onClick={() =>
                       onAskFile({
                         resourceId: selected.resourceId,
@@ -691,11 +730,74 @@ export function LocalFilesPane({
                     }
                   >
                     <Sparkles size={14} />
-                    询问这份资料
+                    询问资料
                   </button>
-                )}
-              </div>
-              {file && file.kind !== 'unsupported' && (
+                </>
+              )}
+              <details className="local-reader-more">
+                <summary>更多</summary>
+                <div className="local-reader-menu">
+                  <div className="local-breadcrumb" aria-label="当前资料路径">
+                    <button
+                      onClick={() =>
+                        choose({
+                          resourceId: resource.id,
+                          path: '',
+                          kind: resource.kind === 'folder' ? 'folder' : 'file',
+                        })
+                      }
+                    >
+                      {resource.title}
+                    </button>
+                    {resource.kind === 'folder' &&
+                      parents.map((part, index) => (
+                        <span key={index}>
+                          <ChevronRight size={12} />
+                          <button
+                            onClick={() =>
+                              choose({
+                                resourceId: resource.id,
+                                path: parents.slice(0, index + 1).join('/'),
+                                kind: 'folder',
+                              })
+                            }
+                          >
+                            {part}
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                  <p className="local-full-path">{fullPath}</p>
+                  <button
+                    className="text-button"
+                    onClick={() =>
+                      void api().openResourcePath(selected.resourceId, selected.path).catch(onError)
+                    }
+                  >
+                    <ExternalLink size={14} />
+                    用系统应用打开
+                  </button>
+                  <button
+                    className="text-button"
+                    onClick={() =>
+                      void api()
+                        .openResourcePath(selected.resourceId, selected.path, true)
+                        .catch(onError)
+                    }
+                  >
+                    在文件管理器中显示
+                  </button>
+                </div>
+              </details>
+            </>
+          ) : (
+            <span>本地资料</span>
+          )}
+        </div>
+        {resource && selected ? (
+          <>
+            <header className="local-reader-header">
+              {file && file.kind !== 'unsupported' && file.kind !== 'pdf' && (
                 <div className="local-find-row">
                   <label>
                     <Search size={14} />
@@ -751,179 +853,202 @@ export function LocalFilesPane({
                 </div>
               )}
             </header>
-            <div className="local-reader-scroll" ref={scroll}>
-              {loading && (
-                <div className="local-reader-empty">
-                  <FileText size={27} />
-                  <p>正在读取文件</p>
-                </div>
-              )}
-              {error && (
-                <div className="local-reader-empty local-file-error" role="alert">
-                  <File size={28} />
-                  <strong>暂时无法读取这份资料</strong>
-                  <p>{error}</p>
-                  <button className="secondary-button" onClick={refresh}>
-                    <RefreshCw size={14} />
-                    重新读取
-                  </button>
-                </div>
-              )}
-              {selected.kind === 'folder' && (
-                <div className="local-folder-view">
-                  <div className="local-folder-caption">
-                    <span>文件夹内容</span>
-                    <small>
-                      {selectedDirectory?.data ? `${selectedDirectory.data.total} 项` : '正在读取'}
-                    </small>
+            <div className="local-reader-content">
+              <div
+                className="local-reader-scroll"
+                ref={scroll}
+                onMouseUp={(event) =>
+                  reading.captureSelection({ x: event.clientX, y: event.clientY })
+                }
+                onKeyUp={() => reading.captureSelection()}
+                onScroll={reading.dismissSelection}
+              >
+                {loading && (
+                  <div className="local-reader-empty">
+                    <FileText size={27} />
+                    <p>正在读取文件</p>
                   </div>
-                  {selectedDirectory?.data?.entries.map((entry) => (
-                    <button
-                      className="local-folder-entry"
-                      key={entry.path}
-                      data-resource-id={selected.resourceId}
-                      data-path={entry.path}
-                      data-kind={entry.kind}
-                      onClick={() =>
-                        choose({
-                          resourceId: selected.resourceId,
-                          path: entry.path,
-                          kind: entry.kind,
-                        })
-                      }
-                    >
-                      {entry.kind === 'folder' ? <Folder size={18} /> : <FileText size={18} />}
-                      <span>{entry.name}</span>
+                )}
+                {error && (
+                  <div className="local-reader-empty local-file-error" role="alert">
+                    <File size={28} />
+                    <strong>暂时无法读取这份资料</strong>
+                    <p>{error}</p>
+                    <button className="secondary-button" onClick={refresh}>
+                      <RefreshCw size={14} />
+                      重新读取
+                    </button>
+                  </div>
+                )}
+                {selected.kind === 'folder' && (
+                  <div className="local-folder-view">
+                    <div className="local-folder-caption">
+                      <span>文件夹内容</span>
                       <small>
-                        {entry.kind === 'folder'
-                          ? '文件夹'
-                          : entry.name.split('.').length > 1
-                            ? entry.name.split('.').at(-1)?.toUpperCase()
-                            : '文件'}
+                        {selectedDirectory?.data
+                          ? `${selectedDirectory.data.total} 项`
+                          : '正在读取'}
                       </small>
-                      <ChevronRight size={14} />
-                    </button>
-                  ))}
-                  {selectedDirectory?.error && (
-                    <p className="local-file-error" role="alert">
-                      {selectedDirectory.error}
-                    </p>
-                  )}
-                  {selectedDirectory?.data && !selectedDirectory.data.entries.length && (
-                    <p className="local-folder-empty">这个文件夹还没有内容。</p>
-                  )}
-                  {selectedDirectory?.data?.nextOffset != null && (
+                    </div>
+                    {selectedDirectory?.data?.entries.map((entry) => (
+                      <button
+                        className="local-folder-entry"
+                        key={entry.path}
+                        data-resource-id={selected.resourceId}
+                        data-path={entry.path}
+                        data-kind={entry.kind}
+                        onClick={() =>
+                          choose({
+                            resourceId: selected.resourceId,
+                            path: entry.path,
+                            kind: entry.kind,
+                          })
+                        }
+                      >
+                        {entry.kind === 'folder' ? <Folder size={18} /> : <FileText size={18} />}
+                        <span>{entry.name}</span>
+                        <small>
+                          {entry.kind === 'folder'
+                            ? '文件夹'
+                            : entry.name.split('.').length > 1
+                              ? entry.name.split('.').at(-1)?.toUpperCase()
+                              : '文件'}
+                        </small>
+                        <ChevronRight size={14} />
+                      </button>
+                    ))}
+                    {selectedDirectory?.error && (
+                      <p className="local-file-error" role="alert">
+                        {selectedDirectory.error}
+                      </p>
+                    )}
+                    {selectedDirectory?.data && !selectedDirectory.data.entries.length && (
+                      <p className="local-folder-empty">这个文件夹还没有内容。</p>
+                    )}
+                    {selectedDirectory?.data?.nextOffset != null && (
+                      <button
+                        className="secondary-button local-folder-more"
+                        disabled={selectedDirectory.loading}
+                        onClick={() =>
+                          void loadDirectory(
+                            selected.resourceId,
+                            selected.path,
+                            selectedDirectory.data!.nextOffset!,
+                          )
+                        }
+                      >
+                        显示更多（已显示 {selectedDirectory.data.entries.length} /{' '}
+                        {selectedDirectory.data.total}）
+                      </button>
+                    )}
+                  </div>
+                )}
+                {file?.kind === 'unsupported' && (
+                  <div className="local-reader-empty">
+                    <File size={30} />
+                    <strong>使用系统应用查看此文件</strong>
+                    <p>这里支持 PDF、Markdown 和文本阅读，此格式可交给对应应用打开。</p>
                     <button
-                      className="secondary-button local-folder-more"
-                      disabled={selectedDirectory.loading}
+                      className="secondary-button"
                       onClick={() =>
-                        void loadDirectory(
-                          selected.resourceId,
-                          selected.path,
-                          selectedDirectory.data!.nextOffset!,
-                        )
+                        void api()
+                          .openResourcePath(selected.resourceId, selected.path)
+                          .catch(onError)
                       }
                     >
-                      显示更多（已显示 {selectedDirectory.data.entries.length} /{' '}
-                      {selectedDirectory.data.total}）
+                      用系统应用打开
                     </button>
-                  )}
-                </div>
-              )}
-              {file?.kind === 'unsupported' && (
-                <div className="local-reader-empty">
-                  <File size={30} />
-                  <strong>使用系统应用查看此文件</strong>
-                  <p>这里支持 Markdown 和文本阅读，此格式可交给对应应用打开。</p>
-                  <button
-                    className="secondary-button"
-                    onClick={() =>
-                      void api().openResourcePath(selected.resourceId, selected.path).catch(onError)
-                    }
-                  >
-                    用系统应用打开
-                  </button>
-                </div>
-              )}
-              {file && file.kind !== 'unsupported' && (
-                <>
-                  {file.kind === 'markdown' && mode === 'preview' && headings.length > 0 && (
-                    <details className="local-document-outline">
-                      <summary>
-                        <List size={14} />
-                        文档目录 · {headings.length} 个标题
-                      </summary>
-                      <nav aria-label="文档目录">
-                        {headings.map((heading) => (
-                          <button
-                            key={heading.id}
-                            style={{ paddingLeft: 10 + (heading.level - 1) * 10 }}
-                            onClick={() => scrollToAnchor(heading.id)}
-                          >
-                            {heading.text || '无标题'}
-                          </button>
-                        ))}
-                      </nav>
-                    </details>
-                  )}
-                  <div
-                    className={
-                      'local-file-body' +
-                      (file.kind === 'markdown' && mode === 'preview'
-                        ? ' markdown local-markdown'
-                        : ' local-source')
-                    }
-                    ref={body}
-                  >
-                    {file.kind === 'markdown' && mode === 'preview' ? (
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        urlTransform={(url) => url}
-                        components={{
-                          a: ({ href, children }) => (
-                            <a
-                              href={href}
-                              onClick={(event) => {
-                                event.preventDefault();
-                                if (href) void followLink(href);
-                              }}
-                            >
-                              {children}
-                            </a>
-                          ),
-                          img: ({ src, alt }) => (
-                            <LocalImage
-                              resourceId={selected.resourceId}
-                              path={file.path}
-                              source={typeof src === 'string' ? src : ''}
-                              alt={alt || ''}
-                              revision={revision}
-                            />
-                          ),
-                        }}
-                      >
-                        {file.body}
-                      </Markdown>
-                    ) : (
-                      <pre>
-                        <code>{file.body}</code>
-                      </pre>
-                    )}
-                    {!file.body && <p className="local-empty-file">这个文件目前没有内容。</p>}
                   </div>
-                  <footer className="local-file-meta">
-                    {new Intl.NumberFormat('zh-CN').format(file.size)} 字节 · 修改于{' '}
-                    {new Date(file.modifiedAt).toLocaleString('zh-CN', { hour12: false })}
-                  </footer>
-                </>
+                )}
+                {file?.kind === 'pdf' && file.data && (
+                  <PdfViewer data={file.data} annotations={reading.activeItems} focus={pdfFocus} />
+                )}
+                {file && file.kind !== 'unsupported' && file.kind !== 'pdf' && (
+                  <>
+                    {file.kind === 'markdown' && mode === 'preview' && headings.length > 0 && (
+                      <details className="local-document-outline">
+                        <summary>
+                          <List size={14} />
+                          文档目录 · {headings.length} 个标题
+                        </summary>
+                        <nav aria-label="文档目录">
+                          {headings.map((heading) => (
+                            <button
+                              key={heading.id}
+                              style={{ paddingLeft: 10 + (heading.level - 1) * 10 }}
+                              onClick={() => scrollToAnchor(heading.id)}
+                            >
+                              {heading.text || '无标题'}
+                            </button>
+                          ))}
+                        </nav>
+                      </details>
+                    )}
+                    <div
+                      className={
+                        'local-file-body' +
+                        (file.kind === 'markdown' && mode === 'preview'
+                          ? ' markdown local-markdown'
+                          : ' local-source')
+                      }
+                      ref={body}
+                    >
+                      {file.kind === 'markdown' && mode === 'preview' ? (
+                        <Markdown
+                          remarkPlugins={[remarkGfm]}
+                          urlTransform={(url) => url}
+                          components={{
+                            a: ({ href, children }) => (
+                              <a
+                                href={href}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  if (href) void followLink(href);
+                                }}
+                              >
+                                {children}
+                              </a>
+                            ),
+                            img: ({ src, alt }) => (
+                              <LocalImage
+                                resourceId={selected.resourceId}
+                                path={file.path}
+                                source={typeof src === 'string' ? src : ''}
+                                alt={alt || ''}
+                                revision={revision}
+                              />
+                            ),
+                          }}
+                        >
+                          {file.body}
+                        </Markdown>
+                      ) : (
+                        <pre>
+                          <code>{file.body}</code>
+                        </pre>
+                      )}
+                      {!file.body && <p className="local-empty-file">这个文件目前没有内容。</p>}
+                    </div>
+                    <footer className="local-file-meta">
+                      {new Intl.NumberFormat('zh-CN').format(file.size)} 字节 · 修改于{' '}
+                      {new Date(file.modifiedAt).toLocaleString('zh-CN', { hour12: false })}
+                    </footer>
+                  </>
+                )}
+              </div>
+              {file && file.kind !== 'unsupported' && (
+                <ReadingPanel tools={reading} providers={providers} file={file} />
               )}
             </div>
+            <SelectionToolbar tools={reading} />
           </>
         ) : (
           <div className="local-reader-empty">
             <FolderOpen size={36} />
             <strong>把常用资料放在手边</strong>
-            <p>选择左侧文件夹，点击 Markdown 或文本即可阅读。</p>
+            <p>
+              选择左侧文件夹，点击 PDF、Markdown 或文本即可阅读，也可以拖入 PDF 或 Markdown 文件。
+            </p>
             <p>文件保留在原位置，阅读后也可以继续询问 AI。</p>
           </div>
         )}

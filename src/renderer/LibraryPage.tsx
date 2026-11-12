@@ -27,6 +27,7 @@ import { useNoteEditor } from './components/useNoteEditor';
 import { NoteMarkdown, formatNoteSelection } from './components/NoteMarkdown';
 import { LocalFilesPane } from './LocalFilesPane';
 import type { AiAssistanceRequest } from '../shared/ai-assistance';
+import type { Provider } from '../shared/types';
 const api = () => window.dola.workspace;
 function noteTime(value: string) {
   return new Date(value).toLocaleString('zh-CN', {
@@ -48,7 +49,13 @@ export function LibraryPage({
   focusResource,
   onAskFile,
   onAskAi,
+  providers,
+  readingProviderId,
+  readingModel,
 }: PageProps & {
+  providers: Provider[];
+  readingProviderId: string;
+  readingModel: string;
   focusNoteId?: string;
   onAskNote: (note: Note) => void;
   focusLibrary?: { category: string; tab: 'notes' | 'files' };
@@ -67,6 +74,8 @@ export function LibraryPage({
   const [scope, setScope] = useState('all');
   const [bookEditor, setBookEditor] = useState<{ name: string; previous?: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [draggingFiles, setDraggingFiles] = useState(false);
+  const dragDepth = useRef(0);
   const [preview, setPreview] = useState(false);
   const [openedResource, setOpenedResource] = useState<{ resourceId: string; path: string }>();
   const bodyInput = useRef<HTMLTextAreaElement>(null);
@@ -204,8 +213,47 @@ export function LibraryPage({
       setTab('files');
     });
   }
+  function dropFiles(event: React.DragEvent<HTMLElement>) {
+    if (!event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    dragDepth.current = 0;
+    setDraggingFiles(false);
+    const paths = Array.from(event.dataTransfer.files, (file) =>
+      window.dola.pathForDroppedFile(file),
+    );
+    void run(async () => {
+      if (!paths.length || paths.some((path) => !path))
+        throw new Error('无法读取拖入的文件，请重新选择。');
+      await editor.flush();
+      const added = await api().addResourcePaths(paths, category);
+      setCategory('');
+      setSearch('');
+      setTab('files');
+      if (added[0]) setOpenedResource({ resourceId: added[0].id, path: '' });
+    });
+  }
   return (
-    <section className={'work-page library-page' + (tab === 'files' ? ' local-library-page' : '')}>
+    <section
+      className={'work-page library-page' + (tab === 'files' ? ' local-library-page' : '')}
+      onDragEnter={(event) => {
+        if (!event.dataTransfer.types.includes('Files')) return;
+        event.preventDefault();
+        dragDepth.current += 1;
+        setDraggingFiles(true);
+      }}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('Files')) event.preventDefault();
+      }}
+      onDragLeave={(event) => {
+        if (!event.dataTransfer.types.includes('Files')) return;
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (!dragDepth.current) setDraggingFiles(false);
+      }}
+      onDrop={dropFiles}
+    >
+      {draggingFiles && (
+        <div className="local-drop-overlay">松开以添加并阅读 PDF 或 Markdown 文件</div>
+      )}
       <PageHeader
         eyebrow="A PLACE FOR YOUR IDEAS"
         title="资料与笔记"
@@ -219,11 +267,19 @@ export function LibraryPage({
           <Upload size={15} />
           添加文件
         </button>
-        <button className="primary-button" disabled={busy} onClick={() => void newNote()}>
-          <Plus size={15} />
-          新笔记
-        </button>
-        {onAskAi && (
+        {tab === 'files' && (
+          <button className="secondary-button" onClick={() => setLink(true)}>
+            <Plus size={14} />
+            添加资料链接
+          </button>
+        )}
+        {tab === 'notes' && (
+          <button className="primary-button" disabled={busy} onClick={() => void newNote()}>
+            <Plus size={15} />
+            新笔记
+          </button>
+        )}
+        {tab === 'notes' && onAskAi && (
           <button
             className="secondary-button"
             disabled={busy}
@@ -579,14 +635,10 @@ export function LibraryPage({
         </>
       ) : (
         <>
-          <div className="work-actions">
-            <button className="text-button" onClick={() => setLink(true)}>
-              <Plus size={14} />
-              添加资料链接
-            </button>
-            <span className="muted">文件和文件夹保留在原位置。</span>
-          </div>
           <LocalFilesPane
+            providers={providers}
+            readingProviderId={readingProviderId}
+            readingModel={readingModel}
             resources={workspace.resources}
             category={category}
             search={search}

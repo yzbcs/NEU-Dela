@@ -96,21 +96,34 @@ export class LocalFiles {
     const info = await stat(target.path).catch(localError);
     if (!info.isFile()) throw new Error('请选择文件；文件夹可以在左侧展开。');
     const extension = extname(target.path).toLowerCase();
-    const kind = ['.md', '.markdown'].includes(extension)
-      ? 'markdown'
-      : textExtensions.has(extension)
-        ? 'text'
-        : 'unsupported';
-    if (kind !== 'unsupported' && info.size > 8 * 1024 * 1024)
-      throw new Error('文件超过 8 MB，请使用系统应用打开；预览不会截断正文。');
+    const kind =
+      extension === '.pdf'
+        ? 'pdf'
+        : ['.md', '.markdown'].includes(extension)
+          ? 'markdown'
+          : textExtensions.has(extension)
+            ? 'text'
+            : 'unsupported';
+    if (kind !== 'unsupported' && info.size > (kind === 'pdf' ? 50 : 8) * 1024 * 1024)
+      throw new Error(
+        kind === 'pdf'
+          ? 'PDF 超过 50 MB，请使用系统应用打开。'
+          : '文件超过 8 MB，请使用系统应用打开；预览不会截断正文。',
+      );
     const body =
-      kind === 'unsupported' ? '' : await readFile(target.path, 'utf8').catch(localError);
+      kind === 'unsupported' || kind === 'pdf'
+        ? ''
+        : await readFile(target.path, 'utf8').catch(localError);
+    const data = kind === 'pdf' ? await readFile(target.path).catch(localError) : undefined;
+    if (data && data.byteLength > 50 * 1024 * 1024)
+      throw new Error('PDF 超过 50 MB，请使用系统应用打开。');
     return {
       name: basename(target.path),
       path: relativePath(target.resource, target.path),
       fullPath: target.path,
       kind,
       body,
+      ...(data ? { data: new Uint8Array(data) } : {}),
       size: info.size,
       modifiedAt: info.mtime.toISOString(),
     };

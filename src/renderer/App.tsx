@@ -56,6 +56,12 @@ import { StartupScreen } from './components/StartupScreen';
 import { StudentOnboarding } from './components/StudentOnboarding';
 import { ChatAttachmentList } from './components/ChatAttachmentList';
 import { ChatHistory } from './components/ChatHistory';
+import {
+  ResizeHandle,
+  SidebarToggle,
+  useSidebarCollapsed,
+  useSidebarWidth,
+} from './components/ResizableSidebar';
 import { assistancePrompt, type AiAssistanceRequest } from '../shared/ai-assistance';
 import { SettingsPage } from './SettingsPage';
 import type { WorkspaceSearchResult } from '../shared/search';
@@ -351,6 +357,10 @@ function ChatModelPicker({
 }
 
 export function App() {
+  const [sidebarWidth, setSidebarWidth] = useSidebarWidth('dola-main-sidebar-width', 232, 170, 380);
+  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsed(
+    'dola-main-sidebar-collapsed',
+  );
   const [page, setPage] = useState<Page>('home');
   const [focusNoteId, setFocusNoteId] = useState<string>();
   const [focusMailId, setFocusMailId] = useState<string>();
@@ -737,7 +747,11 @@ export function App() {
     );
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <aside
+        id="main-sidebar"
+        className="sidebar"
+        style={{ width: sidebarWidth, display: sidebarCollapsed ? 'none' : undefined }}
+      >
         <div className="traffic-space" />
         <Brand />
         <button
@@ -884,7 +898,25 @@ export function App() {
           </div>
         </div>
       </aside>
+      <ResizeHandle
+        label="调整导航栏宽度"
+        width={sidebarWidth}
+        onChange={setSidebarWidth}
+        min={170}
+        max={380}
+        remaining={360}
+        initial={232}
+        collapsed={sidebarCollapsed}
+      />
       <main className="main">
+        <div className={'main-toolbar' + (sidebarCollapsed ? ' sidebar-hidden' : '')}>
+          <SidebarToggle
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed((value) => !value)}
+            panelId="main-sidebar"
+            panelName="导航栏"
+          />
+        </div>
         {settings ? (
           <SettingsPage
             key={settings.request}
@@ -948,6 +980,9 @@ export function App() {
             />
           ) : page === 'library' ? (
             <LibraryPage
+              providers={state.providers}
+              readingProviderId={providerId}
+              readingModel={model}
               onAskAi={askAiToAssist}
               key={focusRequest}
               workspace={state.workspace}

@@ -68,10 +68,35 @@ export interface LocalFilePreview {
   name: string;
   path: string;
   fullPath: string;
-  kind: 'markdown' | 'text' | 'unsupported';
+  kind: 'markdown' | 'text' | 'pdf' | 'unsupported';
   body: string;
+  data?: Uint8Array;
   size: number;
   modifiedAt: string;
+}
+export type AnnotationColor = 'yellow' | 'green' | 'blue' | 'pink';
+export interface ReadingAnnotation {
+  id: string;
+  text: string;
+  color: AnnotationColor;
+  createdAt: string;
+  version: string;
+  view: 'pdf' | 'markdown' | 'source';
+  page?: number;
+  rects?: { x: number; y: number; width: number; height: number }[];
+  start?: number;
+  end?: number;
+  comment?: string;
+}
+export type ReadingAnnotationInput = Omit<ReadingAnnotation, 'id' | 'createdAt' | 'version'>;
+export interface ReadingAnnotationList {
+  version: string;
+  items: ReadingAnnotation[];
+}
+export interface ReadingSummary {
+  text: string;
+  scope: string;
+  truncated: boolean;
 }
 export type LocalResourceLink =
   | { kind: 'file'; path: string; anchor?: string }
@@ -171,11 +196,46 @@ export interface WorkspaceApi {
   removeNote(id: string): Promise<void>;
   exportNote(id: string): Promise<string | null>;
   addResources(kind: 'file' | 'folder', category: string): Promise<void>;
+  addResourcePaths(paths: string[], category: string): Promise<Resource[]>;
   addLink(title: string, url: string, category: string): Promise<void>;
   removeResource(id: string): Promise<void>;
   openResource(id: string): Promise<void>;
   listResourceDirectory(id: string, path: string, offset?: number): Promise<LocalDirectory>;
   readResourceFile(id: string, path: string): Promise<LocalFilePreview>;
+  listReadingAnnotations(id: string, path: string): Promise<ReadingAnnotationList>;
+  addReadingAnnotation(
+    id: string,
+    path: string,
+    version: string,
+    input: ReadingAnnotationInput,
+  ): Promise<ReadingAnnotationList>;
+  updateReadingAnnotation(
+    id: string,
+    path: string,
+    annotationId: string,
+    color: AnnotationColor,
+    comment: string,
+  ): Promise<ReadingAnnotationList>;
+  removeReadingAnnotation(
+    id: string,
+    path: string,
+    annotationId: string,
+  ): Promise<ReadingAnnotationList>;
+  translateReadingText(
+    providerId: string,
+    model: string,
+    text: string,
+    requestId?: string,
+  ): Promise<string>;
+  cancelReadingTranslation(requestId: string): Promise<void>;
+  summarizeReadingFile(
+    resourceId: string,
+    path: string,
+    version: string,
+    providerId: string,
+    model: string,
+    requestId: string,
+  ): Promise<ReadingSummary>;
   readResourceImage(id: string, path: string, source: string): Promise<string>;
   resolveResourceLink(id: string, path: string, href: string): Promise<LocalResourceLink>;
   openResourcePath(id: string, path: string, reveal?: boolean): Promise<void>;
